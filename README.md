@@ -1,1 +1,1 @@
-# This is an awesome hydroponics thing yo
+# This is an awesome hydroponics thing
