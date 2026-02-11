@@ -19,13 +19,19 @@ tds_sensor tds1(TDS1_PIN);
 tds_sensor tds2(TDS2_PIN);
 tds_sensor tds3(TDS3_PIN);
 tds_sensor tds4(TDS4_PIN);
+ph_sensor ph1(pH1_PIN);
+ph_sensor ph2(pH2_PIN);
 bool calibrated = false;
-
 
 void calibrate() {
   Serial.println("Calibrating Sensors...");
   tds1.calibrate(true_tds_val);
   tds2.calibrate(true_tds_val);
+  tds3.calibrate(true_tds_val);
+  tds4.calibrate(true_tds_val);
+
+  ph1.calibrate();
+  ph2.calibrate();
 }
 
 
@@ -36,26 +42,38 @@ void setup() {
 
 void loop() {
   // Read TDS values
-  float tds1_val = tds1.read_val();
-  float tds2_val = tds2.read_val();
+  // float tds1_val = tds1.read_val();
+  // float tds2_val = tds2.read_val();
+
   std::array<float, 4> tds_values = {tds1.read_val(), tds2.read_val(), tds3.read_val(), tds4.read_val()};
+  std::array<float, 2> ph_values = {ph1.read_val(), ph2.read_val()};
 
   float tds_mean = std::accumulate(tds_values.begin(), tds_values.end(), 0.0);
+  float ph_mean = std::accumulate(ph_values.begin(), ph_values.end(), 0.0);
 
   Serial.print("TDS 1 Value: ");
-  Serial.println(tds1_val);
+  Serial.println(tds_values[0]);
 
   Serial.print("TDS 2 Value: ");
-  Serial.println(tds2_val); 
+  Serial.println(tds_values[1]); 
 
   Serial.print("TDS Average: ");
   Serial.println(tds_mean);
+
+  Serial.print("TDS 1 Value: ");
+  Serial.println(ph_values[0]);
+
+  Serial.print("TDS 2 Value: ");
+  Serial.println(ph_values[1]); 
+
+  Serial.print("TDS Average: ");
+  Serial.println(ph_mean);
   
 
-  if (!calibrated) {
-    calibrate();
-    calibrated = true;
-  }
+  // if (!calibrated) {
+    // calibrate();
+    // calibrated = true;
+  // }
 
   delay(1000); // Delay for 1 second
 }

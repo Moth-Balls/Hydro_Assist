@@ -13,7 +13,7 @@ class tds_sensor {
     
   private:
     float compensation_val;
-    float uncomp_val;
+    float uncomp_val; // Sensor value before being multiplied by compensation_val
     uint8_t analog_pin;
     
 };
