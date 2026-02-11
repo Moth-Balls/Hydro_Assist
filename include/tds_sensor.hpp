@@ -11,7 +11,6 @@ class tds_sensor {
     void calibrate(float true_val);
     float read_val();
     
-
   private:
     float compensation_val;
     float uncomp_val;
@@ -19,8 +18,9 @@ class tds_sensor {
     
 };
 
+
 // Constructor
-tds_sensor::tds_sensor(uint8_t pin) : compensation_val(300.0), analog_pin(pin), uncomp_val(0.0) {}
+tds_sensor::tds_sensor(uint8_t pin) : compensation_val(300.0), uncomp_val(0.0), analog_pin(pin) {}
 
 
 // Sensor Calibration
@@ -29,11 +29,11 @@ void tds_sensor::calibrate(float true_val) {
     Serial.println("TDS Sensor Calibrated");
 }
 
-// Sensor read
+// Read Sensor
 float tds_sensor::read_val() {
 
-    uint16_t read_val = analogRead(this->analog_pin);
-    float voltage = static_cast<float>(read_val) * (5.0 / 1023.0); 
+    uint16_t sensor_val = analogRead(this->analog_pin);
+    float voltage = static_cast<float>(sensor_val) * (5.0 / 1023.0); 
     this->uncomp_val = voltage;
 
     float val_adjusted = voltage * this->compensation_val;
