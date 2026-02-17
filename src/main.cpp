@@ -1,8 +1,8 @@
 #include "tds_sensor.hpp"
 #include "ph_sensor.hpp"
-#include <array>
+#include "motor.hpp"
 #include <numeric>
-#include "arm_math.h"
+#include <array>
 
 #define TDS1_PIN A1
 #define TDS2_PIN A2 
@@ -77,6 +77,7 @@ void loop() {
 
   delay(1000); // Delay for 1 second
 }
+
 
 
 
