@@ -13,14 +13,9 @@ class motor {
 
         void test();
 
-        void dose(uint16_t volume);
+        void dose(float volume);
 
-
-
-
-
-
-
+        void move(float speed, bool dir);
 
 
     private:
@@ -35,11 +30,48 @@ class motor {
 
 
 motor::motor(uint8_t DIR, uint8_t STEP) : DIR_PIN(DIR), STEP_PIN(STEP), stepper(AccelStepper::DRIVER, STEP, DIR) {
-
     stepper.setMaxSpeed(1000);
-    stepper.setAcceleration(500);
+    stepper.setAcceleration(5000);
+    stepper.setSpeed(1000);
+}
+
+
+void motor::stop(){
+    stepper.stop();
+}
+
+void motor::test(){
+    stepper.moveTo(1000);
+
+    while(stepper.distanceToGo() != 0) {
+        stepper.run();
+    }
+
+    stepper.stop();
+
+    stepper.moveTo(-1000);
+
+    while(stepper.distanceToGo() != 0) {
+        stepper.run();
+    }
+
+    stepper.stop();
 
 }
+
+void motor::dose(float volume) { // Volume in mL
+
+
+
+}
+
+
+
+
+
+
+
+
 
 
 
