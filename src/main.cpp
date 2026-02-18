@@ -34,23 +34,25 @@
 #define BLOOM_DIR_PIN 9
 #define BLOOM_STEP_PIN 10
 
-
 //! Temporary define, will add better way later probably
 #define true_tds_val 660
 
+// TDS Sensors
 tds_sensor tds1(TDS1_PIN);
 tds_sensor tds2(TDS2_PIN);
 tds_sensor tds3(TDS3_PIN);
 tds_sensor tds4(TDS4_PIN);
 
+// pH Sensors
 ph_sensor ph1(pH1_PIN);
 ph_sensor ph2(pH2_PIN);
- 
-motor ph_up(pH_UP_DIR_PIN, pH_UP_STEP_PIN);
-motor ph_down(pH_DOWN_DIR_PIN, pH_DOWN_STEP_PIN);
-motor gro(GRO_DIR_PIN, GRO_STEP_PIN); // Green
-motor micro(MICRO_DIR_PIN, MICRO_STEP_PIN); // Purple
-motor bloom(BLOOM_DIR_PIN, BLOOM_STEP_PIN); // Pink
+
+// Motors with TMC2209 configuration
+motor ph_up(pH_UP_DIR_PIN, pH_UP_STEP_PIN, Serial1);
+motor ph_down(pH_DOWN_DIR_PIN, pH_DOWN_STEP_PIN, Serial1);
+motor gro(GRO_DIR_PIN, GRO_STEP_PIN, Serial1); // Green
+motor micro(MICRO_DIR_PIN, MICRO_STEP_PIN, Serial1); // Purple
+motor bloom(BLOOM_DIR_PIN, BLOOM_STEP_PIN, Serial1); // Pink
 
 bool calibrated = false;
 
@@ -68,17 +70,19 @@ void calibrate() {
 void setup() {
   Serial.begin(9600);
   analogReadResolution(12);
+
+  Serial1.begin(115200);
 }
 
-
 void loop() {
-
+  // Read TDS and pH sensor values
   std::array<float, 4> tds_values = {tds1.read_val(), tds2.read_val(), tds3.read_val(), tds4.read_val()};
   std::array<float, 2> ph_values = {ph1.read_val(), ph2.read_val()};
 
   float tds_mean = std::accumulate(tds_values.begin(), tds_values.end(), 0.0);
   float ph_mean = std::accumulate(ph_values.begin(), ph_values.end(), 0.0);
 
+  // Print sensor values
   Serial.print("TDS 1 Value: ");
   Serial.println(tds_values[0]);
 
@@ -88,25 +92,26 @@ void loop() {
   Serial.print("TDS Average: ");
   Serial.println(tds_mean);
 
-  Serial.print("TDS 1 Value: ");
+  Serial.print("pH 1 Value: ");
   Serial.println(ph_values[0]);
 
-  Serial.print("TDS 2 Value: ");
+  Serial.print("pH 2 Value: ");
   Serial.println(ph_values[1]); 
 
-  Serial.print("TDS Average: ");
+  Serial.print("pH Average: ");
   Serial.println(ph_mean);
 
-
+  // Test motor movements
   ph_up.test();
   ph_down.test();
 
+  // Uncomment to calibrate sensors once
   // if (!calibrated) {
-    // calibrate();
-    // calibrated = true;
+  //   calibrate();
+  //   calibrated = true;
   // }
 
-  delay(1000);
+  delay(1000); // Delay for 1 second
 }
 
 
