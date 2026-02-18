@@ -45,7 +45,7 @@ tds_sensor tds4(TDS4_PIN);
 
 ph_sensor ph1(pH1_PIN);
 ph_sensor ph2(pH2_PIN);
-
+ 
 motor ph_up(pH_UP_DIR_PIN, pH_UP_STEP_PIN);
 motor ph_down(pH_DOWN_DIR_PIN, pH_DOWN_STEP_PIN);
 motor gro(GRO_DIR_PIN, GRO_STEP_PIN); // Green
@@ -98,7 +98,8 @@ void loop() {
   Serial.println(ph_mean);
 
 
-  // gro.test();
+  ph_up.test();
+  ph_down.test();
 
   // if (!calibrated) {
     // calibrate();

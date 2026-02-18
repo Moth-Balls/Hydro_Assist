@@ -32,7 +32,7 @@ class motor {
 motor::motor(uint8_t DIR, uint8_t STEP) : DIR_PIN(DIR), STEP_PIN(STEP), stepper(AccelStepper::DRIVER, STEP, DIR) {
     stepper.setMaxSpeed(1000);
     stepper.setAcceleration(5000);
-    stepper.setSpeed(1000);
+    stepper.setSpeed(500);
 }
 
 
