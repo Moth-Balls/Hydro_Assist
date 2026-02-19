@@ -5,14 +5,14 @@
 #include <array>
 
 // TDS Sensors
-#define TDS1_PIN A1
-#define TDS2_PIN A2 
-#define TDS3_PIN A3
-#define TDS4_PIN A4
+#define TDS1_PIN A3
+#define TDS2_PIN A4 
+#define TDS3_PIN A5
+#define TDS4_PIN A6
 
 // pH Sensors
-#define pH1_PIN A5
-#define pH2_PIN A6
+#define pH1_PIN A1
+#define pH2_PIN A2
 
 // pH Up Bottle Pump
 #define pH_UP_DIR_PIN 1
