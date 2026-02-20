@@ -17,7 +17,6 @@ class ph_sensor {
         float SCALE;
         uint8_t analog_pin;
         
-
 };
 
 

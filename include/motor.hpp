@@ -8,7 +8,7 @@
 
 class motor {
     public:
-        motor(uint8_t DIR, uint8_t STEP, Stream& serial);
+        motor(uint8_t DIR, uint8_t STEP);
 
         void stop();
 
@@ -23,18 +23,18 @@ class motor {
         uint8_t STEP_PIN;
 
         AccelStepper stepper;
-        TMC2209Stepper driver;
+        // TMC2209Stepper driver;
 };
 
-motor::motor(uint8_t DIR, uint8_t STEP, Stream& serial) : DIR_PIN(DIR), STEP_PIN(STEP), stepper(AccelStepper::DRIVER, STEP, DIR), driver(&serial, R_SENSE, 0x00) {
+motor::motor(uint8_t DIR, uint8_t STEP) : DIR_PIN(DIR), STEP_PIN(STEP), stepper(AccelStepper::DRIVER, STEP, DIR) {
     stepper.setMaxSpeed(1000);
     stepper.setAcceleration(5000);
     stepper.setSpeed(500);
 
-    driver.begin();
-    driver.rms_current(800);
-    driver.microsteps(16);
-    driver.en_spreadCycle(false);
+    // driver.begin();
+    // driver.rms_current(800);
+    // driver.microsteps(16);
+    // driver.en_spreadCycle(false);
 }
 
 void motor::stop() {
