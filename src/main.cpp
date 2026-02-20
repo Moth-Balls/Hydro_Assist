@@ -3,6 +3,7 @@
 #include "motor.hpp"
 #include <numeric>
 #include <array>
+#include "kalman.hpp"
 
 // TDS Sensors
 #define TDS1_PIN A3
@@ -54,6 +55,9 @@ motor gro(GRO_DIR_PIN, GRO_STEP_PIN, Serial1); // Green
 motor micro(MICRO_DIR_PIN, MICRO_STEP_PIN, Serial1); // Purple
 motor bloom(BLOOM_DIR_PIN, BLOOM_STEP_PIN, Serial1); // Pink
 
+KalmanFilter tds_kalman;
+KalmanFilter pH_kalman;
+
 bool calibrated = false;
 
 void calibrate() {
@@ -72,15 +76,20 @@ void setup() {
   analogReadResolution(12);
 
   Serial1.begin(115200);
+
+  // Init filter vals
+  tds_kalman.x = 660;
+  tds_kalman.p = 0.3;
+
+  pH_kalman.x = 7.5;
+  pH_kalman.p = 0.1;
+
 }
 
 void loop() {
-  // Read TDS and pH sensor values
+
   std::array<float, 4> tds_values = {tds1.read_val(), tds2.read_val(), tds3.read_val(), tds4.read_val()};
   std::array<float, 2> ph_values = {ph1.read_val(), ph2.read_val()};
-
-  float tds_mean = std::accumulate(tds_values.begin(), tds_values.end(), 0.0);
-  float ph_mean = std::accumulate(ph_values.begin(), ph_values.end(), 0.0);
 
   // Print sensor values
   Serial.print("TDS 1 Value: ");
@@ -89,17 +98,21 @@ void loop() {
   Serial.print("TDS 2 Value: ");
   Serial.println(tds_values[1]); 
 
-  Serial.print("TDS Average: ");
-  Serial.println(tds_mean);
-
   Serial.print("pH 1 Value: ");
   Serial.println(ph_values[0]);
 
   Serial.print("pH 2 Value: ");
   Serial.println(ph_values[1]); 
 
-  Serial.print("pH Average: ");
-  Serial.println(ph_mean);
+
+  float tds_filtered = tds_filter(tds_values, tds_kalman, 0.5);
+  float pH_filtered = ph_filter(ph_values, pH_kalman, 0.1);
+
+  Serial.print("TDS Filtered Value:");
+  Serial.println(tds_filtered);
+
+  Serial.print("pH Filtered Value:");
+  Serial.println(pH_filtered);
 
   // Test motor movements
   ph_up.test();
