@@ -18,8 +18,8 @@
   3. Calibrate pH and EC sensors
 */
 
-#include <WiFi.h>
-#include <HTTPClient.h>
+// #include <WiFi.h>
+#include <Arduino.h>
 #include <ArduinoJson.h>
 
 // WiFi credentials

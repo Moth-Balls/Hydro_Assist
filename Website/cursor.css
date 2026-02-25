@@ -1,7 +1,0 @@
-/* Site-wide custom cursor */
-html, body, * {
-    cursor: url("nat967.cur"), auto !important;
-}
-
-/* Fallback for very old browsers can be added here, e.g.
-   cursor: url('cursor.cur'), auto; */
