@@ -22,8 +22,6 @@ class ph_sensor {
 // Constructor
 ph_sensor::ph_sensor(uint8_t pin){}
 
-
-
 // Read Sensor
 float ph_sensor::read_val() {
     float raw = analogRead(this->analog_pin);
