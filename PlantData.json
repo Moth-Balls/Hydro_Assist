@@ -1,0 +1,81 @@
+{
+  "plant_nutrient_data": [
+    {
+      "name": "Arugula",
+      "type": "Leafy Green",
+      "ec_range": "0.8 - 1.8",
+      "ph_avg": 6.3,
+      "ph_range": "6.0 - 6.8"
+    },
+    {
+      "name": "Lettuce",
+      "type": "Leafy Green",
+      "ec_range": "0.8 - 1.2",
+      "ph_avg": 6.0,
+      "ph_range": "5.5 - 6.5"
+    },
+    {
+      "name": "Spinach",
+      "type": "Leafy Green",
+      "ec_range": "1.8 - 2.3",
+      "ph_avg": 6.5,
+      "ph_range": "6.0 - 7.0"
+    },
+    {
+      "name": "Kale",
+      "type": "Leafy Green",
+      "ec_range": "1.6 - 2.5",
+      "ph_avg": 6.3,
+      "ph_range": "6.0 - 6.5"
+    },
+    {
+      "name": "Mint",
+      "type": "Herb",
+      "ec_range": "2.0 - 2.4",
+      "ph_avg": 6.0,
+      "ph_range": "5.5 - 6.5"
+    },
+    {
+      "name": "Tomato",
+      "type": "Fruiting",
+      "ec_range": "2.0 - 5.0",
+      "ph_avg": 6.3,
+      "ph_range": "6.0 - 6.5"
+    },
+    {
+      "name": "Cucumber",
+      "type": "Fruiting",
+      "ec_range": "1.7 - 2.5",
+      "ph_avg": 5.8,
+      "ph_range": "5.5 - 6.0"
+    },
+    {
+      "name": "Eggplant",
+      "type": "Fruiting",
+      "ec_range": "2.5 - 3.5",
+      "ph_avg": 6.0,
+      "ph_range": "5.5 - 6.5"
+    },
+    {
+      "name": "Strawberry",
+      "type": "Fruit",
+      "ec_range": "1.8 - 2.2",
+      "ph_avg": 5.8,
+      "ph_range": "5.5 - 6.2"
+    },
+    {
+      "name": "Basil",
+      "type": "Herb",
+      "ec_range": "1.0 - 1.6",
+      "ph_avg": 5.8,
+      "ph_range": "5.5 - 6.5"
+    },
+    {
+      "name": "Bell Pepper",
+      "type": "Fruiting",
+      "ec_range": "1.8 - 2.2",
+      "ph_avg": 6.1,
+      "ph_range": "5.8 - 6.3"
+    }
+  ]
+}

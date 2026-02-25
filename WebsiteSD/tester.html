@@ -303,12 +303,17 @@
         <div class="controls">
             <div class="input-group">
                 <input type="text" id="apiUrl" placeholder="API URL or WebSocket URL" value="http://localhost:5000/api/data">
+                <select id="plantSelect" aria-label="Select plant">
+                    <option>Loading plants...</option>
+                </select>
             </div>
             <button onclick="connectToAPI()">Connect</button>
             <button onclick="sendManualData()" class="success">Send Test Data</button>
             <button onclick="toggleAutoRefresh()" class="success">Toggle Auto-Refresh</button>
             <button onclick="clearAllData()" class="danger">Clear Data</button>
         </div>
+
+        <div id="plantInfo" style="margin:12px 0; color: #fff;"></div>
 
         <div id="messageArea"></div>
 
@@ -317,6 +322,7 @@
                 <div class="sensor-label"><img src="spinolab.png" alt="pH" class="ph-emoji">pH Level</div>
                 <div class="sensor-value" id="phValue">--</div>
                 <div class="sensor-unit">0 - 14 scale</div>
+                <div class="sensor-target" id="phTarget" style="font-size:0.9em;color:#666;margin-top:8px;">Target: --</div>
                 <div class="sensor-status" id="phTime" style="background-color: #f0f0f0;">No data yet</div>
             </div>
 
@@ -324,6 +330,7 @@
                 <div class="sensor-label"><img src="tri_thundercock.png" alt="EC" class="ec-emoji">EC Level</div>
                 <div class="sensor-value" id="ecValue">--</div>
                 <div class="sensor-unit">µS/cm</div>
+                <div class="sensor-target" id="ecTarget" style="font-size:0.9em;color:#666;margin-top:8px;">Target: --</div>
                 <div class="sensor-status" id="ecTime" style="background-color: #f0f0f0;">No data yet</div>
             </div>
         </div>
@@ -364,6 +371,8 @@
         let autoRefreshInterval;
         let isAutoRefreshing = false;
         const MAX_DATA_POINTS = 100;
+        let plantData = [];
+        let selectedPlant = null;
 
         // Initialize charts
         function initCharts() {
@@ -437,9 +446,21 @@
 
         // Update display with new data
         function updateDisplay(data) {
+            const ph = Number(data.ph);
+            const ec = Number(data.ec);
+
             // Update current values
-            document.getElementById('phValue').textContent = data.ph.toFixed(2);
-            document.getElementById('ecValue').textContent = data.ec.toFixed(0);
+            document.getElementById('phValue').textContent = isNaN(ph) ? '--' : ph.toFixed(2);
+            document.getElementById('ecValue').textContent = isNaN(ec) ? '--' : ec.toFixed(0);
+
+            // Update target displays if a plant is selected
+            if (selectedPlant) {
+                document.getElementById('phTarget').textContent = `Target: ${selectedPlant.ph_avg} (range ${selectedPlant.ph_range})`;
+                document.getElementById('ecTarget').textContent = `Target: ${selectedPlant.ec_range}`;
+            } else {
+                document.getElementById('phTarget').textContent = 'Target: --';
+                document.getElementById('ecTarget').textContent = 'Target: --';
+            }
 
             // Update timestamps
             const now = new Date().toLocaleTimeString();
@@ -449,8 +470,8 @@
             // Add to history
             sensorData.unshift({
                 timestamp: new Date(),
-                ph: data.ph,
-                ec: data.ec
+                ph: ph,
+                ec: ec
             });
 
             // Keep only last MAX_DATA_POINTS
@@ -558,8 +579,8 @@
         // Send manual test data
         function sendManualData() {
             const testData = {
-                ph: (Math.random() * 14).toFixed(2),
-                ec: (Math.random() * 2000).toFixed(0)
+                ph: Number((Math.random() * 14).toFixed(2)),
+                ec: Number((Math.random() * 2000).toFixed(0))
             };
             updateDisplay(testData);
             showMessage(`Test data added: pH=${testData.ph}, EC=${testData.ec}`, 'success');
@@ -604,10 +625,66 @@
             setTimeout(() => messageArea.removeChild(div), 5000);
         }
 
+        // Load plant data and populate dropdown
+        async function loadPlantData() {
+            try {
+                const resp = await fetch('PlantData.json');
+                const json = await resp.json();
+                plantData = json.plant_nutrient_data || [];
+                populatePlantSelect();
+            } catch (err) {
+                console.error('Failed to load PlantData.json', err);
+                const sel = document.getElementById('plantSelect');
+                sel.innerHTML = '<option>Error loading plants</option>';
+            }
+        }
+
+        function populatePlantSelect() {
+            const sel = document.getElementById('plantSelect');
+            sel.innerHTML = '';
+            const defaultOpt = document.createElement('option');
+            defaultOpt.value = '';
+            defaultOpt.textContent = 'Select a plant...';
+            sel.appendChild(defaultOpt);
+
+            plantData.forEach((p, idx) => {
+                const opt = document.createElement('option');
+                opt.value = idx;
+                opt.textContent = p.name;
+                sel.appendChild(opt);
+            });
+
+            sel.addEventListener('change', onPlantSelected);
+        }
+
+        function onPlantSelected(e) {
+            const idx = e.target.value;
+            if (idx === '') {
+                selectedPlant = null;
+            } else {
+                selectedPlant = plantData[Number(idx)];
+            }
+            updatePlantInfo();
+        }
+
+        function updatePlantInfo() {
+            const info = document.getElementById('plantInfo');
+            if (!selectedPlant) {
+                info.innerHTML = '';
+                document.getElementById('phTarget').textContent = 'Target: --';
+                document.getElementById('ecTarget').textContent = 'Target: --';
+                return;
+            }
+            info.innerHTML = `Selected: <strong>${selectedPlant.name}</strong> — ${selectedPlant.type} — pH: ${selectedPlant.ph_range} (avg ${selectedPlant.ph_avg}) — EC: ${selectedPlant.ec_range}`;
+            document.getElementById('phTarget').textContent = `Target: ${selectedPlant.ph_avg} (range ${selectedPlant.ph_range})`;
+            document.getElementById('ecTarget').textContent = `Target: ${selectedPlant.ec_range}`;
+        }
+
         // Initialize on load
         window.addEventListener('load', () => {
             initCharts();
             updateDataLog();
+            loadPlantData();
         });
     </script>
 </body>
