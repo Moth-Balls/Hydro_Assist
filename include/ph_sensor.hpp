@@ -29,7 +29,5 @@ float ph_sensor::read_val() {
     float raw = analogRead(this->analog_pin);
     float ph = (-0.0225 * raw) + 24.36;
 
-
-
     return ph;
 }
