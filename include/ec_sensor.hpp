@@ -30,7 +30,7 @@ ec_sensor::ec_sensor(uint8_t pin, float compensation_val) : compensation_val(com
 float ec_sensor::read_val() {
 
     uint16_t sensor_val = analogRead(this->analog_pin);
-    float voltage = static_cast<float>(sensor_val) * (5.0 / 1023.0); 
+    float voltage = static_cast<float>(sensor_val) * (3.3f / 4095.0f); 
 
     float val_adjusted = voltage * this->compensation_val;
 
