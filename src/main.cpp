@@ -70,76 +70,53 @@ void setup() {
   ec_kalman.x = true_ec_val;
   ec_kalman.p = 0.3;
 
-  pH_kalman.x = 7.5;
+  pH_kalman.x = 6.5;
   pH_kalman.p = 0.1;
 
 }
 
 
-
-
 void loop() {
 
-  // std::array<float, 4> ec_values = {ec1.read_val(), ec2.read_val(), ec3.read_val(), ec4.read_val()};
-  // std::array<float, 2> ph_values = {ph1.read_val(), ph2.read_val()};
+  std::array<float, 4> ec_values = {ec1.read_val(), ec2.read_val(), ec3.read_val(), ec4.read_val()};
+  std::array<float, 2> ph_values = {ph1.read_val(), ph2.read_val()};
 
   // Print sensor values
-  // Serial.print("ec 1 Value: ");
-  // Serial.println(ec_values[0]);
+  Serial.print("ec 1 Value: ");
+  Serial.println(ec_values[0]);
 
-  // Serial.print("ec 2 Value: ");
-  // Serial.println(ec_values[1]); 
+  Serial.print("ec 2 Value: ");
+  Serial.println(ec_values[1]); 
 
-  // Serial.print("ec 3 Value: ");
-  // Serial.println(ec_values[2]); 
+  Serial.print("ec 3 Value: ");
+  Serial.println(ec_values[2]); 
 
-  // Serial.print("ec 4 Value: ");
-  // Serial.println(ec_values[3]); 
+  Serial.print("ec 4 Value: ");
+  Serial.println(ec_values[3]); 
 
-  // Serial.print("pH 1 Value: ");
-  // Serial.println(ph_values[0]);
+  Serial.print("pH 1 Value: ");
+  Serial.println(ph_values[0]);
 
-  // Serial.print("pH 2 Value: ");
-  // Serial.println(ph_values[1]); 
+  Serial.print("pH 2 Value: ");
+  Serial.println(ph_values[1]); 
 
-  // float ec_filtered = ec_filter(ec_values, ec_kalman, 0.3);
-  // float pH_filtered = ph_filter(ph_values, pH_kalman, 0.1);
+  float ec_filtered = ec_filter(ec_values, ec_kalman, 0.3);
+  float pH_filtered = ph_filter(ph_values, pH_kalman, 0.1);
 
-  // Serial.print("EC Filtered Value:");
-  // Serial.println(ec_filtered);
+  Serial.print("EC Filtered Value:");
+  Serial.println(ec_filtered);
 
-  // Serial.print("pH Filtered Value:");
-  // Serial.println(pH_filtered);
-
-  float raw = analogRead(pH2_PIN);
-  float voltage = raw * (3.3f / 4095.0f);
-
-  Serial.print("Voltage:");
-  Serial.println(voltage);
-
-  float ph = ph1.read_val();
-
-
-  Serial.print("PH:");
-  Serial.println(ph);
-
-
-  // if (calibrated != true)
-  // {
-    // calibrate_ph_sensor(A1);
-  // }
-  
-
-
+  Serial.print("pH Filtered Value:");
+  Serial.println(pH_filtered);
 
   // Test motor movements
-  // ph_up.test();
-  // ph_down.test();
-  // gro.test();
-  // micro.test();
-  // bloom.test();
+  ph_up.test();
+  ph_down.test();
+  gro.test();
+  micro.test();
+  bloom.test();
 
-  delay(1000); // Delay for 1 second
+  delay(1000);
 }
 
 

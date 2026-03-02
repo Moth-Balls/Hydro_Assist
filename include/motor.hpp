@@ -41,6 +41,16 @@ void motor::stop() {
     stepper.stop();
 }
 
+// void motor::test() {
+//     stepper.setSpeed(500);
+//     while (true) {
+//         stepper.runSpeed(); 
+//     }
+    
+
+
+// }
+
 void motor::test() {
     stepper.moveTo(1000);
 
@@ -58,6 +68,8 @@ void motor::test() {
 
     stepper.stop();
 }
+
+
 
 void motor::dose(float volume) {
     // Implementation for dosing
