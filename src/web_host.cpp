@@ -25,8 +25,8 @@ const char index_html[] PROGMEM = R"rawliteral(
     <style>
         * { 
             margin: 0; padding: 0; box-sizing: border-box; 
-            /* NEW IMPROVED LEAF CURSOR */
-            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="%234caf50" d="M17,8C15.5,1 7,1 3,5C2.1,10 5,16 11,20V23H13V20C19,16 21.9,10 21,5C17,1 8.5,1 7,8Z"/></svg>') 12 12, auto !important;
+            /* COMPLETED SYMMETRICAL LEAF CURSOR */
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="%234caf50" d="M12,2C12,2 6,6 6,12C6,16 8,18 11,19V22H13V19C16,18 18,16 18,12C18,6 12,2 12,2M12,4C12,4 16,8 16,12C16,15 14.5,16.5 12,17V4Z"/></svg>') 12 2, auto !important;
         }
         body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; color: #333; }
         .container { max-width: 1200px; margin: 0 auto; }
@@ -94,11 +94,8 @@ const char index_html[] PROGMEM = R"rawliteral(
 void setup() {
   Serial.begin(115200);
 
-  // Initialize LittleFS
-  if (!LittleFS.begin()) {
-    Serial.println("An error occurred while mounting LittleFS");
-    return;
-  }
+  // Initialize LittleFS (Optional since we serve from variable now)
+  LittleFS.begin();
 
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) { 
@@ -108,12 +105,11 @@ void setup() {
   Serial.print("\nConnected! IP: "); 
   Serial.println(WiFi.localIP());
 
-  // Serve the HTML file from LittleFS
+  // FIXED ROUTE: Serves the baked-in HTML variable directly
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(LittleFS, "/website.html", "text/html");
+    request->send_P(200, "text/html", index_html);
   });
 
-  // Serve the JSON data
   server.on("/data", HTTP_GET, [](AsyncWebServerRequest *request){
     String json = "{\"ph\":" + String(phValue) + ",\"ec\":" + String(ecValue) + "}";
     AsyncWebServerResponse *response = request->beginResponse(200, "application/json", json);
