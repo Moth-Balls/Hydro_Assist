@@ -38,6 +38,17 @@
 //! Temporary define, will add better way later probably
 #define true_ec_val 1177
 
+
+// Serial2 setup for TMC2209 driver setup.
+Uart Serial2(&sercom5, 2, 3, SERCOM_RX_PAD_3, UART_TX_PAD_0);
+
+void SERCOM5_Handler()
+{
+  Serial2.IrqHandler();
+}
+
+#define SERIAL_PORT Serial2
+
 // ec Sensors
 ec_sensor ec1(EC1_PIN, 78.08493545);
 ec_sensor ec2(EC2_PIN, 75.48113613);
@@ -49,11 +60,11 @@ ph_sensor ph1(pH1_PIN);
 ph_sensor ph2(pH2_PIN);
 
 // Motors with TMC2209 configuration
-motor ph_up(pH_UP_DIR_PIN, pH_UP_STEP_PIN);
-motor ph_down(pH_DOWN_DIR_PIN, pH_DOWN_STEP_PIN);
-motor gro(GRO_DIR_PIN, GRO_STEP_PIN); // Green
-motor micro(MICRO_DIR_PIN, MICRO_STEP_PIN); // Purple
-motor bloom(BLOOM_DIR_PIN, BLOOM_STEP_PIN); // Pink
+motor ph_up(pH_UP_DIR_PIN, pH_UP_STEP_PIN, SERIAL_PORT);
+motor ph_down(pH_DOWN_DIR_PIN, pH_DOWN_STEP_PIN, SERIAL_PORT);
+motor gro(GRO_DIR_PIN, GRO_STEP_PIN, SERIAL_PORT); // Green
+motor micro(MICRO_DIR_PIN, MICRO_STEP_PIN, SERIAL_PORT); // Purple
+motor bloom(BLOOM_DIR_PIN, BLOOM_STEP_PIN, SERIAL_PORT); // Pink
 
 KalmanFilter ec_kalman;
 KalmanFilter pH_kalman;
@@ -62,9 +73,10 @@ bool calibrated = false;
 
 void setup() {
   Serial.begin(115200);
-  analogReadResolution(12);
+  Serial1.begin(115200);
+  Serial2.begin(115200);
 
-  // Serial1.begin(115200);
+  analogReadResolution(12);
 
   // Init filter vals
   ec_kalman.x = true_ec_val;
@@ -75,48 +87,19 @@ void setup() {
 
 }
 
-
 void loop() {
 
   std::array<float, 4> ec_values = {ec1.read_val(), ec2.read_val(), ec3.read_val(), ec4.read_val()};
   std::array<float, 2> ph_values = {ph1.read_val(), ph2.read_val()};
 
-  // Print sensor values
-  Serial.print("ec 1 Value: ");
-  Serial.println(ec_values[0]);
 
-  Serial.print("ec 2 Value: ");
-  Serial.println(ec_values[1]); 
+  // Serial1.println("Hello ESP32!");
 
-  Serial.print("ec 3 Value: ");
-  Serial.println(ec_values[2]); 
 
-  Serial.print("ec 4 Value: ");
-  Serial.println(ec_values[3]); 
-
-  Serial.print("pH 1 Value: ");
-  Serial.println(ph_values[0]);
-
-  Serial.print("pH 2 Value: ");
-  Serial.println(ph_values[1]); 
-
-  float ec_filtered = ec_filter(ec_values, ec_kalman, 0.3);
-  float pH_filtered = ph_filter(ph_values, pH_kalman, 0.1);
-
-  Serial.print("EC Filtered Value:");
-  Serial.println(ec_filtered);
-
-  Serial.print("pH Filtered Value:");
-  Serial.println(pH_filtered);
-
-  // Test motor movements
   ph_up.test();
-  ph_down.test();
-  gro.test();
-  micro.test();
-  bloom.test();
 
-  delay(1000);
+
+  delay(500);
 }
 
 
