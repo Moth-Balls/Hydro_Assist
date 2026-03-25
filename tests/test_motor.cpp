@@ -20,7 +20,7 @@ AccelStepper stepper2(AccelStepper::DRIVER, STEP2_PIN, DIR2_PIN);
 void setup() {
   // Start USB serial for debugging
   Serial.begin(115200);
-  while (!Serial);  // Wait for USB serial connection
+  // while (!Serial);  // Wait for USB serial connection
 
   // Start Serial1 for TMC2209 communication
   SERIAL_PORT.begin(115200);
@@ -48,7 +48,7 @@ void setup() {
 
 void loop() {
   stepper.runSpeed();
-  stepper2.runSpeed();
+  // stepper2.runSpeed();
 
   Serial.println("Still working");
 }

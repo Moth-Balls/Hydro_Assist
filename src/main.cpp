@@ -6,6 +6,7 @@
 
 #include <numeric>
 #include <array>
+#include "wiring_private.h"
 
 /*#############################*/
 /*######## Pin Defines ########*/
@@ -53,10 +54,10 @@
 // Serial2 setup for TMC2209 driver setup.
 Uart Serial2(&sercom5, 2, 3, SERCOM_RX_PAD_3, UART_TX_PAD_0); // Pins 2 RX / 3 TX
 
-void SERCOM5_Handler()
-{
-  Serial2.IrqHandler();
-}
+void SERCOM5_0_Handler() { Serial2.IrqHandler(); }
+void SERCOM5_1_Handler() { Serial2.IrqHandler(); }
+void SERCOM5_2_Handler() { Serial2.IrqHandler(); }
+void SERCOM5_3_Handler() { Serial2.IrqHandler(); }
 
 #define SERIAL_PORT Serial2
 
@@ -87,6 +88,17 @@ void setup() {
   Serial1.begin(115200);
   Serial2.begin(115200);
 
+  // Reroute Pins to be serial
+  pinPeripheral(2, PIO_SERCOM_ALT);
+  pinPeripheral(3, PIO_SERCOM_ALT);
+
+  // Initialize Motors
+  ph_up.begin();
+  ph_down.begin();
+  gro.begin();
+  micro.begin();
+  bloom.begin();
+
   analogReadResolution(12);
 
   // Init filter vals
@@ -95,7 +107,6 @@ void setup() {
 
   pH_kalman.x = 6.5;
   pH_kalman.p = 0.1;
-
 }
 
 
@@ -110,11 +121,13 @@ void loop() {
 
 
   ph_up.test();
+  // ph_down.test();
+  // gro.test();
+  // micro.test();
+  // bloom.test();
+  
+  Serial.println("Still working");
 
-  // ph_control(ph_up, ph_down, ph_val, 6.0, 7.0);
-
-
-  delay(500);
 }
 
 

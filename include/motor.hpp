@@ -10,11 +10,11 @@
 class Motor {
     public:
         Motor(uint8_t DIR, uint8_t STEP, HardwareSerial &SERIAL_PORT);
-
+        
+        void begin();
+        
         void stop();
-
         void test();
-
         void dose(float volume);
 
     private:
@@ -23,10 +23,14 @@ class Motor {
 
         AccelStepper stepper;
         TMC2209Stepper driver;
-
 };
 
-Motor::Motor(uint8_t DIR, uint8_t STEP, HardwareSerial &SERIAL_PORT) : DIR_PIN(DIR), STEP_PIN(STEP), stepper(AccelStepper::DRIVER, STEP, DIR), driver(&SERIAL_PORT, R_SENSE, DRIVER_ADDRESS) {
+
+Motor::Motor(uint8_t DIR, uint8_t STEP, HardwareSerial &SERIAL_PORT) 
+    : DIR_PIN(DIR), STEP_PIN(STEP), stepper(AccelStepper::DRIVER, STEP, DIR), driver(&SERIAL_PORT, R_SENSE, DRIVER_ADDRESS) {
+}
+
+void Motor::begin() {
     stepper.setMaxSpeed(4000);
     stepper.setAcceleration(500);
     stepper.setSpeed(4000);
@@ -45,8 +49,7 @@ void Motor::stop() {
 }
 
 void Motor::test() {
-    // stepper.runSpeed();
-    stepper.move(1000);
+    stepper.runSpeed();
 }
 
 void Motor::dose(float volume) {
