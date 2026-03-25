@@ -7,9 +7,9 @@
 #define R_SENSE 0.11
 #define DRIVER_ADDRESS 0b00
 
-class motor {
+class Motor {
     public:
-        motor(uint8_t DIR, uint8_t STEP, HardwareSerial &SERIAL_PORT);
+        Motor(uint8_t DIR, uint8_t STEP, HardwareSerial &SERIAL_PORT);
 
         void stop();
 
@@ -26,7 +26,7 @@ class motor {
 
 };
 
-motor::motor(uint8_t DIR, uint8_t STEP, HardwareSerial &SERIAL_PORT) : DIR_PIN(DIR), STEP_PIN(STEP), stepper(AccelStepper::DRIVER, STEP, DIR), driver(&SERIAL_PORT, R_SENSE, DRIVER_ADDRESS) {
+Motor::Motor(uint8_t DIR, uint8_t STEP, HardwareSerial &SERIAL_PORT) : DIR_PIN(DIR), STEP_PIN(STEP), stepper(AccelStepper::DRIVER, STEP, DIR), driver(&SERIAL_PORT, R_SENSE, DRIVER_ADDRESS) {
     stepper.setMaxSpeed(4000);
     stepper.setAcceleration(500);
     stepper.setSpeed(4000);
@@ -40,16 +40,16 @@ motor::motor(uint8_t DIR, uint8_t STEP, HardwareSerial &SERIAL_PORT) : DIR_PIN(D
     driver.en_spreadCycle(false);
 }
 
-void motor::stop() {
+void Motor::stop() {
     stepper.stop();
 }
 
-void motor::test() {
+void Motor::test() {
     // stepper.runSpeed();
     stepper.move(1000);
 }
 
-void motor::dose(float volume) {
+void Motor::dose(float volume) {
     // Implementation for dosing
 }
 

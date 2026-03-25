@@ -1,11 +1,17 @@
 #include "ec_sensor.hpp"
 #include "ph_sensor.hpp"
+#include "ph_controller.hpp"
 #include "motor.hpp"
-#include <numeric>
-#include <array>
 #include "kalman.hpp"
 
-// ec Sensors
+#include <numeric>
+#include <array>
+
+/*#############################*/
+/*######## Pin Defines ########*/
+/*#############################*/
+
+// EC Sensors
 #define EC1_PIN A3
 #define EC2_PIN A4 
 #define EC3_PIN A5
@@ -35,12 +41,17 @@
 #define BLOOM_STEP_PIN 21
 #define BLOOM_DIR_PIN 25
 
+/*#######################################*/
+/*######## Kalman Reference Vals ########*/
+/*#######################################*/
+
 //! Temporary define, will add better way later probably
 #define true_ec_val 1177
+#define true_ph_val 6.5
 
 
 // Serial2 setup for TMC2209 driver setup.
-Uart Serial2(&sercom5, 2, 3, SERCOM_RX_PAD_3, UART_TX_PAD_0);
+Uart Serial2(&sercom5, 2, 3, SERCOM_RX_PAD_3, UART_TX_PAD_0); // Pins 2 RX / 3 TX
 
 void SERCOM5_Handler()
 {
@@ -60,16 +71,16 @@ ph_sensor ph1(pH1_PIN);
 ph_sensor ph2(pH2_PIN);
 
 // Motors with TMC2209 configuration
-motor ph_up(pH_UP_DIR_PIN, pH_UP_STEP_PIN, SERIAL_PORT);
-motor ph_down(pH_DOWN_DIR_PIN, pH_DOWN_STEP_PIN, SERIAL_PORT);
-motor gro(GRO_DIR_PIN, GRO_STEP_PIN, SERIAL_PORT); // Green
-motor micro(MICRO_DIR_PIN, MICRO_STEP_PIN, SERIAL_PORT); // Purple
-motor bloom(BLOOM_DIR_PIN, BLOOM_STEP_PIN, SERIAL_PORT); // Pink
+Motor ph_up(pH_UP_DIR_PIN, pH_UP_STEP_PIN, SERIAL_PORT);
+Motor ph_down(pH_DOWN_DIR_PIN, pH_DOWN_STEP_PIN, SERIAL_PORT);
+Motor gro(GRO_DIR_PIN, GRO_STEP_PIN, SERIAL_PORT); // Green
+Motor micro(MICRO_DIR_PIN, MICRO_STEP_PIN, SERIAL_PORT); // Purple
+Motor bloom(BLOOM_DIR_PIN, BLOOM_STEP_PIN, SERIAL_PORT); // Pink
 
 KalmanFilter ec_kalman;
 KalmanFilter pH_kalman;
 
-bool calibrated = false;
+// bool calibrated = false;
 
 void setup() {
   Serial.begin(115200);
@@ -87,16 +98,20 @@ void setup() {
 
 }
 
+
 void loop() {
 
   std::array<float, 4> ec_values = {ec1.read_val(), ec2.read_val(), ec3.read_val(), ec4.read_val()};
   std::array<float, 2> ph_values = {ph1.read_val(), ph2.read_val()};
 
 
-  // Serial1.println("Hello ESP32!");
+  float ph_val = ph_filter(ph_values, pH_kalman, 0.1);
+  float ec_val = ec_filter(ec_values, ec_kalman, 0.1);
 
 
   ph_up.test();
+
+  // ph_control(ph_up, ph_down, ph_val, 6.0, 7.0);
 
 
   delay(500);

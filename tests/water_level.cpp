@@ -3,7 +3,6 @@
 #include <delay.h>
 #include <wiring_constants.h>
 
-
 #ifdef ARDUINO_SAMD_VARIANT_COMPLIANCE
 #define SERIAL SerialUSB
 #else
