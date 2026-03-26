@@ -61,6 +61,7 @@ void SERCOM5_3_Handler() { Serial2.IrqHandler(); }
 
 #define SERIAL_PORT Serial2
 
+
 // ec Sensors
 ec_sensor ec1(EC1_PIN, 78.08493545);
 ec_sensor ec2(EC2_PIN, 75.48113613);
@@ -81,7 +82,6 @@ Motor bloom(BLOOM_DIR_PIN, BLOOM_STEP_PIN, SERIAL_PORT); // Pink
 KalmanFilter ec_kalman;
 KalmanFilter pH_kalman;
 
-// bool calibrated = false;
 
 void setup() {
   Serial.begin(115200);
@@ -93,11 +93,11 @@ void setup() {
   pinPeripheral(3, PIO_SERCOM_ALT);
 
   // Initialize Motors
-  ph_up.begin();
-  ph_down.begin();
-  gro.begin();
-  micro.begin();
-  bloom.begin();
+  ph_up.init();
+  ph_down.init();
+  gro.init();
+  micro.init();
+  bloom.init();
 
   analogReadResolution(12);
 
@@ -119,14 +119,9 @@ void loop() {
   float ph_val = ph_filter(ph_values, pH_kalman, 0.1);
   float ec_val = ec_filter(ec_values, ec_kalman, 0.1);
 
-
-  ph_up.test();
-  // ph_down.test();
-  // gro.test();
-  // micro.test();
-  // bloom.test();
+  test_all_motors(ph_up, ph_down, gro, micro, bloom);
   
-  Serial.println("Still working");
+  // Serial.println("Still working");
 
 }
 
