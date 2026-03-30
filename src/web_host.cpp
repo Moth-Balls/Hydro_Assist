@@ -32,7 +32,7 @@ void setup() {
 
   // serve the file from LittleFS
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-    request->send(LittleFS, "/monitor.html", "text/html");
+    request->send(LittleFS, "/update.html", "text/html");
   });
 
   server.on("/data", HTTP_GET, [](AsyncWebServerRequest *request){
@@ -46,13 +46,7 @@ void setup() {
 }
 
 void loop() {
-
-    while (Serial2.available()) {
-        int c = Serial2.read();
-        // Serial2.write(c);
-        Serial.write(c);
-    }
-
+  
   // Simulate sensor changes every 10 seconds
   phValue = 6.5 + ((float)random(-10, 10) / 100.0);
   ecValue = 1100 + random(-20, 20);

@@ -1,16 +1,17 @@
 #include "ec_sensor.hpp"
 #include "ph_sensor.hpp"
-#include "ph_controller.hpp"
+#include "controller.hpp"
 #include "motor.hpp"
 #include "kalman.hpp"
+#include "serial_comm.hpp"
 
 #include <numeric>
 #include <array>
 #include "wiring_private.h"
 
-/*#############################*/
-/*######## Pin Defines ########*/
-/*#############################*/
+//!#############################*/
+//!######## Pin Defines ########*/
+//!#############################*/
 
 // EC Sensors
 #define EC1_PIN A3
@@ -42,17 +43,23 @@
 #define BLOOM_STEP_PIN 21
 #define BLOOM_DIR_PIN 25
 
-/*#######################################*/
-/*######## Kalman Reference Vals ########*/
-/*#######################################*/
 
-//! Temporary define, will add better way later probably
+//!#######################################*/
+//!######## Kalman Reference Vals ########*/
+//!#######################################*/
+
+
+//TODO Temporary define, will add better way later probably
 #define true_ec_val 1177
 #define true_ph_val 6.5
 
+//!#######################################*/
+//!######## Serial 2 Define ##############*/
+//!#######################################*/
+
 
 // Serial2 setup for TMC2209 driver setup.
-Uart Serial2(&sercom5, 2, 3, SERCOM_RX_PAD_3, UART_TX_PAD_0); // Pins 2 RX / 3 TX
+Uart Serial2(&sercom5, 2, 3, SERCOM_RX_PAD_3, UART_TX_PAD_0); // Pin 2 RX / 3 TX
 
 void SERCOM5_0_Handler() { Serial2.IrqHandler(); }
 void SERCOM5_1_Handler() { Serial2.IrqHandler(); }
@@ -62,7 +69,11 @@ void SERCOM5_3_Handler() { Serial2.IrqHandler(); }
 #define SERIAL_PORT Serial2
 
 
-// ec Sensors
+//!################################################*/
+//!######## Sensor & Motor Object Creation ########*/
+//!################################################*/
+
+// EC Sensors
 ec_sensor ec1(EC1_PIN, 78.08493545);
 ec_sensor ec2(EC2_PIN, 75.48113613);
 ec_sensor ec3(EC3_PIN, 113.20943457);
@@ -121,7 +132,7 @@ void loop() {
 
   test_all_motors(ph_up, ph_down, gro, micro, bloom);
   
-  // Serial.println("Still working");
+  Serial.println("Still working");
 
 }
 
