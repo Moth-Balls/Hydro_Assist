@@ -20,7 +20,7 @@ class ph_sensor {
 
 
 // Constructor
-ph_sensor::ph_sensor(uint8_t pin){}
+ph_sensor::ph_sensor(uint8_t pin) : analog_pin(pin) {}
 
 // Read Sensor
 float ph_sensor::read_val() {

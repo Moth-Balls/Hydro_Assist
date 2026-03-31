@@ -1,5 +1,6 @@
-#include "ec_sensor.hpp"
-#include "ph_sensor.hpp"
+#include "sensors/ec_sensor.hpp"
+#include "sensors/ph_sensor.hpp"
+#include "sensors/temp_sensor.hpp"
 #include "controller.hpp"
 #include "motor.hpp"
 #include "kalman.hpp"
@@ -22,6 +23,12 @@
 // pH Sensors
 #define pH1_PIN A0
 #define pH2_PIN A1
+
+// Temp Sensors
+#define TEMP1_PIN 15
+#define TEMP2_PIN 16
+#define TEMP3_PIN 17
+#define TEMP4_PIN 18
 
 // pH Up Bottle Pump
 #define pH_UP_STEP_PIN 13
@@ -53,10 +60,10 @@
 #define true_ec_val 1177
 #define true_ph_val 6.5
 
+
 //!#######################################*/
 //!######## Serial 2 Define ##############*/
 //!#######################################*/
-
 
 // Serial2 setup for TMC2209 driver setup.
 Uart Serial2(&sercom5, 2, 3, SERCOM_RX_PAD_3, UART_TX_PAD_0); // Pin 2 RX / 3 TX
@@ -68,7 +75,6 @@ void SERCOM5_3_Handler() { Serial2.IrqHandler(); }
 
 #define SERIAL_PORT Serial2
 
-
 //!################################################*/
 //!######## Sensor & Motor Object Creation ########*/
 //!################################################*/
@@ -79,9 +85,18 @@ ec_sensor ec2(EC2_PIN, 75.48113613);
 ec_sensor ec3(EC3_PIN, 113.20943457);
 ec_sensor ec4(EC4_PIN, 66.01233875);
 
+
 // pH Sensors
 ph_sensor ph1(pH1_PIN);
 ph_sensor ph2(pH2_PIN);
+
+
+// Temp Sensors
+temp_sensor temp1(TEMP1_PIN);
+temp_sensor temp2(TEMP2_PIN);
+temp_sensor temp3(TEMP3_PIN);
+temp_sensor temp4(TEMP4_PIN);
+
 
 // Motors with TMC2209 configuration
 Motor ph_up(pH_UP_DIR_PIN, pH_UP_STEP_PIN, SERIAL_PORT);
@@ -92,6 +107,7 @@ Motor bloom(BLOOM_DIR_PIN, BLOOM_STEP_PIN, SERIAL_PORT); // Pink
 
 KalmanFilter ec_kalman;
 KalmanFilter pH_kalman;
+KalmanFilter temp_kalman;
 
 
 void setup() {
@@ -118,22 +134,31 @@ void setup() {
 
   pH_kalman.x = 6.5;
   pH_kalman.p = 0.1;
+
+  temp_kalman.x = 25.0;
+  temp_kalman.p = 0.4;
 }
 
 
 void loop() {
 
-  std::array<float, 4> ec_values = {ec1.read_val(), ec2.read_val(), ec3.read_val(), ec4.read_val()};
-  std::array<float, 2> ph_values = {ph1.read_val(), ph2.read_val()};
+  std::array<float, 4> ec_raw = {ec1.read_val(), ec2.read_val(), ec3.read_val(), ec4.read_val()};
+  std::array<float, 2> ph_raw = {ph1.read_val(), ph2.read_val()};
+  std::array<float, 4> temp_raw = {temp1.read_val(), temp2.read_val(), temp3.read_val(), temp4.read_val()};
 
+  float ph_val = ph_filter(ph_raw, pH_kalman, 0.1);
+  float ec_val = ec_filter(ec_raw, ec_kalman, 0.1);
+  float temp_val = temp_filter(temp_raw, temp_kalman, 0.1);
 
-  float ph_val = ph_filter(ph_values, pH_kalman, 0.1);
-  float ec_val = ec_filter(ec_values, ec_kalman, 0.1);
-
-  test_all_motors(ph_up, ph_down, gro, micro, bloom);
+  // test_all_motors(ph_up, ph_down, gro, micro, bloom);
   
-  Serial.println("Still working");
+  
 
+  
+  
+  
+
+  delay(1000);
 }
 
 
