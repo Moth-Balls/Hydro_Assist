@@ -139,7 +139,6 @@ void setup() {
   temp_kalman.p = 0.4;
 }
 
-
 void loop() {
 
   std::array<float, 4> ec_raw = {ec1.read_val(), ec2.read_val(), ec3.read_val(), ec4.read_val()};
@@ -150,7 +149,16 @@ void loop() {
   float ec_val = ec_filter(ec_raw, ec_kalman, 0.1);
   float temp_val = temp_filter(temp_raw, temp_kalman, 0.1);
 
+  send_data(Serial, ph_val, ec_val, temp_val);
+  send_data(Serial1, ph_val, ec_val, temp_val);
+  
+  
   // test_all_motors(ph_up, ph_down, gro, micro, bloom);
+
+
+
+
+  
   
   
 
