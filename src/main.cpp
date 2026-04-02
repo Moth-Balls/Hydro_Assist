@@ -1,14 +1,18 @@
 #include "sensors/ec_sensor.hpp"
 #include "sensors/ph_sensor.hpp"
 #include "sensors/temp_sensor.hpp"
-#include "controller.hpp"
-#include "motor.hpp"
-#include "kalman.hpp"
 #include "serial_comm.hpp"
+#include "controller.hpp"
+#include "kalman.hpp"
+#include "motor.hpp"
 
+#include "wiring_private.h"
 #include <numeric>
 #include <array>
-#include "wiring_private.h"
+
+#define DEBUG_PORT Serial
+#define COMM_PORT Serial1
+#define TMC2209_PORT Serial2
 
 //!#############################*/
 //!######## Pin Defines ########*/
@@ -73,7 +77,7 @@ void SERCOM5_1_Handler() { Serial2.IrqHandler(); }
 void SERCOM5_2_Handler() { Serial2.IrqHandler(); }
 void SERCOM5_3_Handler() { Serial2.IrqHandler(); }
 
-#define SERIAL_PORT Serial2
+// #define SERIAL_PORT Serial2
 
 //!################################################*/
 //!######## Sensor & Motor Object Creation ########*/
@@ -99,21 +103,23 @@ temp_sensor temp4(TEMP4_PIN);
 
 
 // Motors with TMC2209 configuration
-Motor ph_up(pH_UP_DIR_PIN, pH_UP_STEP_PIN, SERIAL_PORT);
-Motor ph_down(pH_DOWN_DIR_PIN, pH_DOWN_STEP_PIN, SERIAL_PORT);
-Motor gro(GRO_DIR_PIN, GRO_STEP_PIN, SERIAL_PORT); // Green
-Motor micro(MICRO_DIR_PIN, MICRO_STEP_PIN, SERIAL_PORT); // Purple
-Motor bloom(BLOOM_DIR_PIN, BLOOM_STEP_PIN, SERIAL_PORT); // Pink
+Motor ph_up(pH_UP_DIR_PIN, pH_UP_STEP_PIN, TMC2209_PORT);
+Motor ph_down(pH_DOWN_DIR_PIN, pH_DOWN_STEP_PIN, TMC2209_PORT);
+Motor gro(GRO_DIR_PIN, GRO_STEP_PIN, TMC2209_PORT); // Green
+Motor micro(MICRO_DIR_PIN, MICRO_STEP_PIN, TMC2209_PORT); // Purple
+Motor bloom(BLOOM_DIR_PIN, BLOOM_STEP_PIN, TMC2209_PORT); // Pink
 
+
+// Kalman filter objects
 KalmanFilter ec_kalman;
 KalmanFilter pH_kalman;
 KalmanFilter temp_kalman;
 
 
 void setup() {
-  Serial.begin(115200);
-  Serial1.begin(115200);
-  Serial2.begin(115200);
+  DEBUG_PORT.begin(115200);
+  COMM_PORT.begin(9600); 
+  TMC2209_PORT.begin(115200); 
 
   // Reroute Pins to be serial
   pinPeripheral(2, PIO_SERCOM_ALT);
@@ -141,6 +147,8 @@ void setup() {
 
 void loop() {
 
+  static float volume; //TODO needs to be figured out
+
   std::array<float, 4> ec_raw = {ec1.read_val(), ec2.read_val(), ec3.read_val(), ec4.read_val()};
   std::array<float, 2> ph_raw = {ph1.read_val(), ph2.read_val()};
   std::array<float, 4> temp_raw = {temp1.read_val(), temp2.read_val(), temp3.read_val(), temp4.read_val()};
@@ -149,26 +157,16 @@ void loop() {
   float ec_val = ec_filter(ec_raw, ec_kalman, 0.1);
   float temp_val = temp_filter(temp_raw, temp_kalman, 0.1);
 
-  send_data(Serial, ph_val, ec_val, temp_val);
-  send_data(Serial1, ph_val, ec_val, temp_val);
-  
+  send_data(DEBUG_PORT, ph_val, ec_val, temp_val); // Display the data in monitor
+
+  send_data(COMM_PORT, ph_val, ec_val, temp_val); // Send data to ESP32
   
   // test_all_motors(ph_up, ph_down, gro, micro, bloom);
 
+  nutrient_calc();
 
 
 
-  
-  
-  
 
-  
-  
-  
-
-  delay(1000);
+  delay(500);
 }
-
-
-
-
