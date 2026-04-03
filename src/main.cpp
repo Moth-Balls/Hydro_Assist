@@ -163,10 +163,6 @@ void loop() {
   
   // test_all_motors(ph_up, ph_down, gro, micro, bloom);
 
-  nutrient_calc();
-
-
-
 
   delay(500);
 }
