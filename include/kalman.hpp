@@ -60,7 +60,7 @@ float ph_filter(std::array<float, 2> curr_vals, KalmanFilter& state, float proce
 
 }
 
-float temp_filter(std::array<float, 4> curr_vals, KalmanFilter& state, float process_noise) {
+float temp_filter(std::array<float, 2> curr_vals, KalmanFilter& state, float process_noise) {
 
 
     static const float R = 1111.0f;

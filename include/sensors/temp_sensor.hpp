@@ -22,20 +22,19 @@ temp_sensor::temp_sensor(uint8_t pin) : read_pin(pin){}
 
 
 float temp_sensor::read_val() {
-
     int raw = analogRead(this->read_pin);
-    float voltage = raw * (this->v_ref / 4095.0); 
-    float sensor_resistance = fixed_resistance * (v_ref / voltage - 1.0);
+    float voltage = raw * (this->v_ref / 4095.0f);
+    if (voltage <= 0.0f || voltage >= this->v_ref) return NAN;
 
-    float value;
-    value = sensor_resistance / nominal_resistance; 
-    value = log(value);                         
-    value /= b_coefficient;                         
-    value += 1.0 / (nominal_temp + 273.15);   
-    value = 1.0 / value;                         
-    value -= 273.15;    
+    float sensor_resistance = this->fixed_resistance * (voltage / (this->v_ref - voltage));
 
-return value;
+    float steinhart = sensor_resistance / this->nominal_resistance;
+    steinhart = logf(steinhart);
+    steinhart /= this->b_coefficient;
+    steinhart += 1.0f / (this->nominal_temp + 273.15f);
+    steinhart = 1.0f / steinhart;
+    steinhart -= 273.15f;
+    return steinhart;
 }
 
 

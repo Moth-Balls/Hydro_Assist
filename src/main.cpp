@@ -19,20 +19,20 @@
 //!#############################*/
 
 // EC Sensors
-#define EC1_PIN A3
-#define EC2_PIN A4 
-#define EC3_PIN A5
-#define EC4_PIN A6
+#define EC1_PIN A2
+#define EC2_PIN A3
+#define EC3_PIN A4
+#define EC4_PIN A5
 
 // pH Sensors
 #define pH1_PIN A0
 #define pH2_PIN A1
 
 // Temp Sensors
-#define TEMP1_PIN 15
-#define TEMP2_PIN 16
-#define TEMP3_PIN 17
-#define TEMP4_PIN 18
+#define TEMP1_PIN A6
+#define TEMP2_PIN A7
+#define TEMP3_PIN A8
+#define TEMP4_PIN A9
 
 // pH Up Bottle Pump
 #define pH_UP_STEP_PIN 13
