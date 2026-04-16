@@ -6,7 +6,6 @@
 #include <ArduinoJson.h>
 
 
-
 void send_data(Stream &comm_port, const float &ph_val, const float &ec_val, const float &temp_val) {
     JsonDocument msg;
     msg["pH"] = ph_val;
@@ -15,9 +14,7 @@ void send_data(Stream &comm_port, const float &ph_val, const float &ec_val, cons
 
     serializeJson(msg, comm_port);
     comm_port.print('\n');
-    comm_port.flush();
 }
-
 
 std::array<float, 3> read_data(Stream &comm_port, Stream &logger_port) {
     static constexpr uint8_t size = 255;

@@ -8,7 +8,6 @@
 class ec_sensor {
   public:
     ec_sensor(uint8_t pin, float compensation_val);
-    // void calibrate(float true_val);
     float read_val();
     
   private:

@@ -31,17 +31,19 @@ Motor::Motor(uint8_t DIR, uint8_t STEP, HardwareSerial &SERIAL_PORT)
 }
 
 void Motor::init() {
-    stepper.setMaxSpeed(4000);
-    stepper.setAcceleration(500);
-    stepper.setSpeed(4000);
-
     driver.begin();
-    driver.toff();
-    driver.rms_current(800);
+
+    driver.toff(5);
+    driver.rms_current(1500); // Set max current to 1A
     driver.microsteps(16);
     driver.pdn_disable(true);
     driver.I_scale_analog(false);
     driver.en_spreadCycle(false);
+
+    stepper.setMaxSpeed(6000);
+    stepper.setAcceleration(500);
+    stepper.setSpeed(4000);
+
 }
 
 void Motor::stop() {
@@ -49,11 +51,23 @@ void Motor::stop() {
 }
 
 void Motor::test() {
-    stepper.runSpeed();
+    stepper.move(1000);
+    stepper.run();
+
+    // stepper.runSpeed();
 }
 
 void Motor::dose(float volume) {
-    // Implementation for dosing
+
+    // Experimental value
+    static const int32_t steps_per_ml = 1;
+
+    std::ceil(volume);    
+
+    int32_t steps_to_move = static_cast<int32_t>(volume) / steps_per_ml;
+    
+    stepper.move(steps_to_move);
+
 }
 
 

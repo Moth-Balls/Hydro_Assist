@@ -6,3 +6,4 @@
 # .vscode/ipch
 /tests
 kalman_filter.md
+.gitignore
