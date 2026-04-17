@@ -34,7 +34,7 @@ void Motor::init() {
     driver.begin();
 
     driver.toff(5);
-    driver.rms_current(1500); // Set max current to 1A
+    driver.rms_current(2000); // Set max current to 1A
     driver.microsteps(16);
     driver.pdn_disable(true);
     driver.I_scale_analog(false);

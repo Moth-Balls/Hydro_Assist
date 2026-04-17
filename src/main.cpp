@@ -142,7 +142,7 @@ void setup() {
   pH_kalman.x = 6.5;
   pH_kalman.p = 0.1;
 
-  temp_kalman.x = 25.0;
+  temp_kalman.x = 22.0;
   temp_kalman.p = 0.4;
 }
 
@@ -167,12 +167,25 @@ void loop() {
   // //send_data(DEBUG_PORT, ph_val, ec_val, temp_val); // Display the data in monitor
   // //send_data(COMM_PORT, ph_val, ec_val, temp_val); // Send data to ESP32
 
-  ph_up.test();
-  ph_down.test();
+  Serial.print("pH Val: ");
+  Serial.print(ph_val);
 
-  gro.test();
-  bloom.test();
-  micro.test();
+  Serial.print(" | EC Val: ");
+  Serial.print(ec_val);
+  
+  Serial.print(" | Temp: ");
+  Serial.print(temp_val);
+
+  Serial.println();
+
+  if (temp_val >= 30.0f) {
+    ph_up.test();
+    ph_down.test();
+  }
+
+  // gro.test();
+  // bloom.test();
+  // micro.test();
 
 
   // delay(500);
