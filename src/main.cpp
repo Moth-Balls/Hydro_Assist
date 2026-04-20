@@ -1,10 +1,13 @@
 #include "sensors/ec_sensor.hpp"
 #include "sensors/ph_sensor.hpp"
 #include "sensors/temp_sensor.hpp"
+#include "sensors/water_level_sensor.hpp"
+
 #include "serial_comm.hpp"
 #include "controller.hpp"
 #include "kalman.hpp"
 #include "motor.hpp"
+#include "plant_profile.hpp"
 
 #include "wiring_private.h"
 #include <numeric>
@@ -117,11 +120,15 @@ KalmanFilter ec_kalman;
 KalmanFilter pH_kalman;
 KalmanFilter temp_kalman;
 
+TargetPlant plant;
+std::string plant_name = "Arugula";
 
 void setup() {
   DEBUG_PORT.begin(115200);
-  COMM_PORT.begin(9600); 
+  COMM_PORT.begin(115200); 
   TMC2209_PORT.begin(115200); 
+
+  Wire.begin();
 
   pinPeripheral(16, PIO_SERCOM);
   pinPeripheral(17, PIO_SERCOM);
@@ -144,49 +151,51 @@ void setup() {
 
   temp_kalman.x = 22.0;
   temp_kalman.p = 0.4;
+
+  // // plant.name = "Arugula";
+  plant.ec_high = 1.8f;
+  plant.ec_low = 0.8f;
+  plant.ec_avg = (plant.ec_high + plant.ec_low) / 2.0f;
+  plant.ph_high = 6.8f;
+  plant.ph_low = 6.0f;
+  plant.ph_avg = (plant.ph_high + plant.ph_low) / 2.0f;
+
+  plant.gro_amount = 1;
+  plant.bloom_amount = 1;
+  plant.micro_amount = 1;
+
 }
 
 void loop() {
 
 
-  //! get_volume() needs to be defined
-  // float volume = get_volume();
+  // Read sensors
+  float volume = read_volume_liters();
 
-  static float volume; //TODO needs to be figured out
-
-  std::array<float, 4> ec_raw = {ec1.read_val(), ec2.read_val(), ec3.read_val(), ec4.read_val()};
-  std::array<float, 2> ph_raw = {ph1.read_val(), ph2.read_val()};
+  // Read temp and filter before passing to ph sensor read()
   std::array<float, 4> temp_raw = {temp1.read_val(), temp2.read_val(), temp3.read_val(), temp4.read_val()};
-
-  float ph_val = ph_filter(ph_raw, pH_kalman, 0.1);
-  float ec_val = ec_filter(ec_raw, ec_kalman, 0.1);
   float temp_val = temp_filter(temp_raw, temp_kalman, 0.1);
 
+  std::array<float, 4> ec_raw = {ec1.read_val(), ec2.read_val(), ec3.read_val(), ec4.read_val()};
+  std::array<float, 2> ph_raw = {ph1.read_val(temp_val), ph2.read_val(temp_val)};
+
+  // Filter sensor data
+  float ec_val = ec_filter(ec_raw, ec_kalman, 0.1);
+  float ph_val = ph_filter(ph_raw, pH_kalman, 0.1);
+
+  // Calc nutrient and ph dosing amount
+  float nutrient_dose = nutrient_calc(plant.ec_avg, plant.ec_low, plant.ec_high, volume, ec_val);
+  float ph_up_dose = ph_up_calc(plant.ph_avg, plant.ph_low, plant.ph_high, volume, ph_val);
+  float ph_down_dose = ph_down_calc(plant.ph_avg, plant.ph_low, plant.ph_high, volume, ph_val);
+
+  // Split nutrients proportionally for the 3 nutrients
+  std::array<float, 3> dose = proportion_nutrient(nutrient_dose, plant.gro_amount, plant.bloom_amount, plant.micro_amount);
+
+  // Dose 
+  dose_nutrients(gro, dose[0], bloom, dose[1], micro, dose[2]);
+  dose_ph(ph_up, ph_up_dose, ph_down, ph_down_dose);
 
   //! This currently pauses serial comms so messes with motors !//
   // //send_data(DEBUG_PORT, ph_val, ec_val, temp_val); // Display the data in monitor
   // //send_data(COMM_PORT, ph_val, ec_val, temp_val); // Send data to ESP32
-
-  Serial.print("pH Val: ");
-  Serial.print(ph_val);
-
-  Serial.print(" | EC Val: ");
-  Serial.print(ec_val);
-  
-  Serial.print(" | Temp: ");
-  Serial.print(temp_val);
-
-  Serial.println();
-
-  if (temp_val >= 30.0f) {
-    ph_up.test();
-    ph_down.test();
-  }
-
-  // gro.test();
-  // bloom.test();
-  // micro.test();
-
-
-  // delay(500);
 }

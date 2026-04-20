@@ -5,6 +5,7 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>
 #include "serial_comm.hpp"
+#include "pull_plant.hpp"
 
 // WiFi Credentials
 const char* ssid     = "isaac-priv-net";
@@ -19,7 +20,7 @@ AsyncEventSource events("/events");
 
 void setup() {
   Serial.begin(115200);
-  Serial2.begin(9600);
+  Serial2.begin(115200);
   
   while(Serial2.available()) {
     Serial2.read();
@@ -54,6 +55,10 @@ void setup() {
 }
 
 void loop() {
+
+  static std::string plant_name = "Arugula";
+  static TargetPlant plant = find_plant_data(plant_name);
+
   if (Serial2.available() > 0) {
     std::array<float, 3> data = read_data(Serial2, Serial);
     if (data[0] != 0.0f || data[1] != 0.0f || data[2] != 0.0f) {

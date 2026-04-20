@@ -14,7 +14,8 @@ class Motor {
         void init();
         
         void stop();
-        void test();
+        void test(int steps);
+        void prime();
         void dose(float volume);
 
     private:
@@ -34,7 +35,7 @@ void Motor::init() {
     driver.begin();
 
     driver.toff(5);
-    driver.rms_current(2000); // Set max current to 1A
+    driver.rms_current(2000); // Set max current to 2A
     driver.microsteps(16);
     driver.pdn_disable(true);
     driver.I_scale_analog(false);
@@ -50,34 +51,43 @@ void Motor::stop() {
     stepper.stop();
 }
 
-void Motor::test() {
-    stepper.move(1000);
-    stepper.run();
+void Motor::test(int steps) {
 
-    // stepper.runSpeed();
+    stepper.move(steps);
+    stepper.runToPosition();
+}
+
+void Motor::prime() {
+    
+    stepper.move(25000);
+    stepper.runToPosition();
 }
 
 void Motor::dose(float volume) {
 
     // Experimental value
-    static const int32_t steps_per_ml = 1;
+    static const int steps_per_ml = 488;
 
     std::ceil(volume);    
 
-    int32_t steps_to_move = static_cast<int32_t>(volume) / steps_per_ml;
+    int steps_to_move = static_cast<int>(volume) * steps_per_ml;
     
     stepper.move(steps_to_move);
-
+    stepper.runToPosition();
 }
 
 
-void test_all_motors(Motor &motor1, Motor &motor2, Motor &motor3, Motor &motor4, Motor &motor5) {
+void dose_nutrients(Motor &nutrient_1_motor, float nutrient_1_amount, Motor &nutrient_2_motor, float nutrient_2_amount, Motor &nutrient_3_motor, float nutrient_3_amount) {
+    
+    nutrient_1_motor.dose(nutrient_1_amount);
+    nutrient_2_motor.dose(nutrient_2_amount);
+    nutrient_3_motor.dose(nutrient_3_amount);
+}
 
-motor1.test();
-motor2.test();
-motor3.test();
-motor4.test();
-motor5.test();
+void dose_ph(Motor &ph_up_motor, float &ph_up_amount, Motor &ph_down_motor, float &ph_down_amount) {
+
+    ph_up_motor.dose(ph_up_amount);
+    ph_down_motor.dose(ph_down_amount);
 }
 
 
