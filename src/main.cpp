@@ -8,6 +8,7 @@
 #include "kalman.hpp"
 #include "motor.hpp"
 #include "plant_profile.hpp"
+#include "noise.hpp"
 
 #include "wiring_private.h"
 #include <numeric>
@@ -151,7 +152,7 @@ void setup() {
   temp_kalman.x = 22.0;
   temp_kalman.p = 0.4;
 
-  // // plant.name = "Arugula";
+  // // plant.name = "Arugula";s
   plant.ec_high = 1.8f;
   plant.ec_low = 0.8f;
   plant.ec_avg = (plant.ec_high + plant.ec_low) / 2.0f;
