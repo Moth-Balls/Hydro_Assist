@@ -64,32 +64,42 @@ void Motor::prime() {
 }
 
 void Motor::dose(float volume) {
+    if (volume <= 0.0) return; 
 
     // Experimental value
     static const int steps_per_ml = 488;
 
-    std::ceil(volume);    
-
-    int steps_to_move = static_cast<int>(volume) * steps_per_ml;
+    // Multiply exact float volume by steps_per_ml, then round to the nearest whole step
+    int steps_to_move = std::round(volume * static_cast<float>(steps_per_ml));
     
     stepper.move(steps_to_move);
-    stepper.runToPosition();
+    stepper.runToPosition(); // Blocks until the motor reaches the target position
 }
 
 
-void dose_nutrients(Motor &nutrient_1_motor, float nutrient_1_amount, Motor &nutrient_2_motor, float nutrient_2_amount, Motor &nutrient_3_motor, float nutrient_3_amount) {
-    
+bool dose_nutrients(Motor &nutrient_1_motor, float nutrient_1_amount, Motor &nutrient_2_motor, float nutrient_2_amount, Motor &nutrient_3_motor, float nutrient_3_amount) {
+
     nutrient_1_motor.dose(nutrient_1_amount);
     nutrient_2_motor.dose(nutrient_2_amount);
     nutrient_3_motor.dose(nutrient_3_amount);
+
+    
 }
 
-void dose_ph(Motor &ph_up_motor, float &ph_up_amount, Motor &ph_down_motor, float &ph_down_amount) {
+bool dose_ph(Motor &ph_up_motor, float &ph_up_amount, Motor &ph_down_motor, float &ph_down_amount) {
 
     ph_up_motor.dose(ph_up_amount);
     ph_down_motor.dose(ph_down_amount);
 }
 
+void mix_resevoir(uint8_t IN1, uint8_t IN2, uint8_t ENA) {
+    digitalWrite(IN1, HIGH);
+    digitalWrite(IN2, LOW);
+
+    analogWrite(ENA, 127); 
+    delay(7000); // Mix for 7 seconds
+    analogWrite(ENA, 0);
+}
 
 
 

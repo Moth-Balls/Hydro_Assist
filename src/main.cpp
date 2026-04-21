@@ -38,6 +38,11 @@
 #define TEMP4_PIN A14
 
 
+// Mixing Motor
+#define MIX_PIN_IN1 37
+#define MIX_PIN_IN2 39
+#define MIX_PIN_ENA 35
+
 // pH Up Bottle Pump
 #define pH_UP_STEP_PIN 50
 #define pH_UP_DIR_PIN 52
@@ -119,6 +124,11 @@ void setup() {
 
   Wire.begin();
 
+  pinMode(MIX_PIN_IN1, OUTPUT);
+  pinMode(MIX_PIN_IN2, OUTPUT);
+  pinMode(MIX_PIN_ENA, OUTPUT);
+
+
   pinPeripheral(16, PIO_SERCOM);
   pinPeripheral(17, PIO_SERCOM);
 
@@ -158,7 +168,7 @@ void setup() {
 void loop() {
 
   // Read sensors
-  //! float volume = read_volume_liters();
+  float volume = read_volume_liters();
 
   // float volume = 10.0f;
 
@@ -173,39 +183,32 @@ void loop() {
   float ec_val = ec_filter(ec_raw, ec_kalman, 0.1);
   float ph_val = ph_filter(ph_raw, pH_kalman, 0.1);
 
-
   // Calc nutrient and ph dosing amount
-  //! float nutrient_dose = nutrient_calc(plant.ec_avg, plant.ec_low, plant.ec_high, volume, ec_val);
-  //! float ph_up_dose = ph_up_calc(plant.ph_avg, plant.ph_low, plant.ph_high, volume, ph_val);
-  //! float ph_down_dose = ph_down_calc(plant.ph_avg, plant.ph_low, plant.ph_high, volume, ph_val);
+  float nutrient_dose = nutrient_calc(plant.ec_avg, plant.ec_low, plant.ec_high, volume, ec_val);
+  float ph_up_dose = ph_up_calc(plant.ph_avg, plant.ph_low, plant.ph_high, volume, ph_val);
+  float ph_down_dose = ph_down_calc(plant.ph_avg, plant.ph_low, plant.ph_high, volume, ph_val);
 
   // Split nutrients proportionally for the 3 nutrients
-  //! std::array<float, 3> dose = proportion_nutrient(nutrient_dose, plant.gro_amount, plant.micro_amount, plant.bloom_amount);
+  std::array<float, 3> dose = proportion_nutrient(nutrient_dose, plant.gro_amount, plant.micro_amount, plant.bloom_amount);
 
   // Dose 
-  //! dose_nutrients(gro, dose[0], bloom, dose[1], micro, dose[2]);
-  //! dose_ph(ph_up, ph_up_dose, ph_down, ph_down_dose);
+  static bool nut_dosed_check = false;
+  static bool ph_dosed_check = false;
 
-  // DEBUG_PORT.print("pH: ");
-  // DEBUG_PORT.println(ph_val);
+  // Dose and check if nutrient or ph was dosed
+  nut_dosed_check = (gro, dose[0], bloom, dose[1], micro, dose[2]);
+  ph_dosed_check = dose_ph(ph_up, ph_up_dose, ph_down, ph_down_dose);
 
-  DEBUG_PORT.print("EC raw: ");
-  DEBUG_PORT.println(ec_raw[0]);
-  DEBUG_PORT.println(ec_raw[1]);
-  DEBUG_PORT.println(ec_raw[2]);
-  DEBUG_PORT.println(ec_raw[3]);
-
-
-
-  // DEBUG_PORT.print("Temp: ");
-  // DEBUG_PORT.println(temp_val);
-
+  // Check if nutrient or ph was dosed. Mix if either was dosed, do nothing if not
+  if (nut_dosed_check || ph_dosed_check) {
+    mix_resevoir(MIX_PIN_IN1, MIX_PIN_IN2, MIX_PIN_ENA);
+    DEBUG_PORT.println("Dosed. Starting mixing");
+  } else {
+    DEBUG_PORT.println("Nothing dosed. Skipping mixing");
+  }
 
   //! This currently pauses serial comms so messes with motors !//
   // //send_data(DEBUG_PORT, ph_val, ec_val, temp_val); // Display the data in monitor
   // //send_data(COMM_PORT, ph_val, ec_val, temp_val); // Send data to ESP32
 
-
-  // DEBUG_PORT.println("still working");
-  delay(500);
 }

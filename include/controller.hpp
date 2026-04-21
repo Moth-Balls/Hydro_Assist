@@ -30,7 +30,7 @@ float ph_up_calc(const float &TARGET_PH, const float &MIN_PH, const float &MAX_P
     return 0.0;
   }
     
-  static const float PH_UP_INPUT_MAX = 1.0; // in mL //TODO NEED TO CHANGE
+  static const float PH_UP_INPUT_MAX = 50.0; // in mL //TODO NEED TO CHANGE
   static const float PH_UP_INPUT_MIN = 0.0; // in mL
   static const float PH_GAIN = 1.0; //TODO NEED TO CHANGE 
 
@@ -68,10 +68,13 @@ float ph_down_calc(const float &TARGET_PH, const float &MIN_PH, const float &MAX
 // Expects a EC value that needs to be proportionally divided based on plant profile
 std::array<float, 3> proportion_nutrient(const float &nutrient_calc_val, const uint8_t &nutrient_1_amount, const uint8_t &nutrient_2_amount, const uint8_t &nutrient_3_amount) {
   
+  // Find the total parts
+  float total_parts = static_cast<float>(nutrient_1_amount + nutrient_2_amount + nutrient_3_amount);
   
-  float nutrient_1_dose = nutrient_calc_val / nutrient_1_amount;
-  float nutrient_2_dose = nutrient_calc_val / nutrient_2_amount;
-  float nutrient_3_dose = nutrient_calc_val / nutrient_3_amount;
+  // Split the total required volume proportionally
+  float nutrient_1_dose = nutrient_calc_val * (nutrient_1_amount / total_parts);
+  float nutrient_2_dose = nutrient_calc_val * (nutrient_2_amount / total_parts);
+  float nutrient_3_dose = nutrient_calc_val * (nutrient_3_amount / total_parts);
   
   std::array<float, 3> dose_amounts = {nutrient_1_dose, nutrient_2_dose, nutrient_3_dose};
 
