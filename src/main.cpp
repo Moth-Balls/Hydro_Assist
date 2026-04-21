@@ -167,10 +167,7 @@ void setup() {
 
 void loop() {
 
-  // Read sensors
-  float volume = read_volume_liters();
-
-  // float volume = 10.0f;
+  float volume = 10.0;
 
   // Read temp and filter before passing to ph sensor read()
   std::array<float, 4> temp_raw = {temp1.read_val(), temp2.read_val(), temp3.read_val(), temp4.read_val()};
@@ -202,13 +199,15 @@ void loop() {
   // Check if nutrient or ph was dosed. Mix if either was dosed, do nothing if not
   if (nut_dosed_check || ph_dosed_check) {
     mix_resevoir(MIX_PIN_IN1, MIX_PIN_IN2, MIX_PIN_ENA);
-    DEBUG_PORT.println("Dosed. Starting mixing");
+    // DEBUG_PORT.println("Dosed. Starting mixing");
   } else {
-    DEBUG_PORT.println("Nothing dosed. Skipping mixing");
+    // DEBUG_PORT.println("Nothing dosed. Skipping mixing");
   }
 
   //! This currently pauses serial comms so messes with motors !//
   // //send_data(DEBUG_PORT, ph_val, ec_val, temp_val); // Display the data in monitor
   // //send_data(COMM_PORT, ph_val, ec_val, temp_val); // Send data to ESP32
 
+  DEBUG_PORT.println("still working");
+  // delay(500);
 }
