@@ -22,17 +22,17 @@
 //!#############################*/
 
 // EC Sensors
-#define EC1_PIN A12
-#define EC2_PIN A13
-#define EC3_PIN A15
-#define EC4_PIN A11
+#define EC1_PIN A5
+#define EC2_PIN A9
+#define EC3_PIN A13
+#define EC4_PIN A1
 
 // pH Sensors
 #define pH1_PIN A3
-#define pH2_PIN A1
+#define pH2_PIN A15
 
 // Temp Sensors
-#define TEMP1_PIN A2
+#define TEMP1_PIN A2 
 #define TEMP2_PIN A6
 #define TEMP3_PIN A10
 #define TEMP4_PIN A14
@@ -58,17 +58,6 @@
 #define BLOOM_STEP_PIN 42
 #define BLOOM_DIR_PIN 44
 
-
-//!#######################################*/
-//!######## Kalman Reference Vals ########*/
-//!#######################################*/
-
-
-//TODO Temporary define, will add better way later probably
-#define true_ec_val 1177
-#define true_ph_val 6.5
-
-
 //!#######################################*/
 //!######## Serial 2 Define ##############*/
 //!#######################################*/
@@ -89,10 +78,10 @@ void SERCOM1_3_Handler() { TMC2209_Serial.IrqHandler(); }
 //!################################################*/
 
 // EC Sensors
-ec_sensor ec1(EC1_PIN, 78.08493545);
-ec_sensor ec2(EC2_PIN, 75.48113613);
-ec_sensor ec3(EC3_PIN, 113.20943457);
-ec_sensor ec4(EC4_PIN, 66.01233875);
+ec_sensor ec1(EC1_PIN, 660.37735849f);
+ec_sensor ec2(EC2_PIN, 2456.14035088f);
+ec_sensor ec3(EC3_PIN, 633.4841629f);
+ec_sensor ec4(EC4_PIN, 583.33333333f);
 
 
 // pH Sensors
@@ -143,7 +132,7 @@ void setup() {
   analogReadResolution(12);
 
   // Init filter vals
-  ec_kalman.x = true_ec_val;
+  ec_kalman.x = 0.7;
   ec_kalman.p = 0.3;
 
   pH_kalman.x = 6.5;
@@ -168,9 +157,10 @@ void setup() {
 
 void loop() {
 
-
   // Read sensors
-  float volume = read_volume_liters();
+  //! float volume = read_volume_liters();
+
+  // float volume = 10.0f;
 
   // Read temp and filter before passing to ph sensor read()
   std::array<float, 4> temp_raw = {temp1.read_val(), temp2.read_val(), temp3.read_val(), temp4.read_val()};
@@ -183,19 +173,39 @@ void loop() {
   float ec_val = ec_filter(ec_raw, ec_kalman, 0.1);
   float ph_val = ph_filter(ph_raw, pH_kalman, 0.1);
 
+
   // Calc nutrient and ph dosing amount
-  float nutrient_dose = nutrient_calc(plant.ec_avg, plant.ec_low, plant.ec_high, volume, ec_val);
-  float ph_up_dose = ph_up_calc(plant.ph_avg, plant.ph_low, plant.ph_high, volume, ph_val);
-  float ph_down_dose = ph_down_calc(plant.ph_avg, plant.ph_low, plant.ph_high, volume, ph_val);
+  //! float nutrient_dose = nutrient_calc(plant.ec_avg, plant.ec_low, plant.ec_high, volume, ec_val);
+  //! float ph_up_dose = ph_up_calc(plant.ph_avg, plant.ph_low, plant.ph_high, volume, ph_val);
+  //! float ph_down_dose = ph_down_calc(plant.ph_avg, plant.ph_low, plant.ph_high, volume, ph_val);
 
   // Split nutrients proportionally for the 3 nutrients
-  std::array<float, 3> dose = proportion_nutrient(nutrient_dose, plant.gro_amount, plant.bloom_amount, plant.micro_amount);
+  //! std::array<float, 3> dose = proportion_nutrient(nutrient_dose, plant.gro_amount, plant.micro_amount, plant.bloom_amount);
 
   // Dose 
-  dose_nutrients(gro, dose[0], bloom, dose[1], micro, dose[2]);
-  dose_ph(ph_up, ph_up_dose, ph_down, ph_down_dose);
+  //! dose_nutrients(gro, dose[0], bloom, dose[1], micro, dose[2]);
+  //! dose_ph(ph_up, ph_up_dose, ph_down, ph_down_dose);
+
+  // DEBUG_PORT.print("pH: ");
+  // DEBUG_PORT.println(ph_val);
+
+  DEBUG_PORT.print("EC raw: ");
+  DEBUG_PORT.println(ec_raw[0]);
+  DEBUG_PORT.println(ec_raw[1]);
+  DEBUG_PORT.println(ec_raw[2]);
+  DEBUG_PORT.println(ec_raw[3]);
+
+
+
+  // DEBUG_PORT.print("Temp: ");
+  // DEBUG_PORT.println(temp_val);
+
 
   //! This currently pauses serial comms so messes with motors !//
   // //send_data(DEBUG_PORT, ph_val, ec_val, temp_val); // Display the data in monitor
   // //send_data(COMM_PORT, ph_val, ec_val, temp_val); // Send data to ESP32
+
+
+  // DEBUG_PORT.println("still working");
+  delay(500);
 }
