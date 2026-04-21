@@ -162,10 +162,15 @@ void setup() {
   plant.gro_amount = 1;
   plant.bloom_amount = 1;
   plant.micro_amount = 1;
-
+  
 }
 
+static unsigned long lastDoseMillis = 0;
+const unsigned long doseInterval = 15UL * 60UL * 1000UL; // 15 minutes
+
 void loop() {
+
+  unsigned long now = millis();
 
   float volume = 10.0;
 
@@ -180,6 +185,8 @@ void loop() {
   float ec_val = ec_filter(ec_raw, ec_kalman, 0.1);
   float ph_val = ph_filter(ph_raw, pH_kalman, 0.1);
 
+  ph_val = 6.5;
+
   // Calc nutrient and ph dosing amount
   float nutrient_dose = nutrient_calc(plant.ec_avg, plant.ec_low, plant.ec_high, volume, ec_val);
   float ph_up_dose = ph_up_calc(plant.ph_avg, plant.ph_low, plant.ph_high, volume, ph_val);
@@ -192,22 +199,23 @@ void loop() {
   static bool nut_dosed_check = false;
   static bool ph_dosed_check = false;
 
-  // Dose and check if nutrient or ph was dosed
-  nut_dosed_check = (gro, dose[0], bloom, dose[1], micro, dose[2]);
-  ph_dosed_check = dose_ph(ph_up, ph_up_dose, ph_down, ph_down_dose);
 
-  // Check if nutrient or ph was dosed. Mix if either was dosed, do nothing if not
-  if (nut_dosed_check || ph_dosed_check) {
-    mix_resevoir(MIX_PIN_IN1, MIX_PIN_IN2, MIX_PIN_ENA);
-    // DEBUG_PORT.println("Dosed. Starting mixing");
-  } else {
-    // DEBUG_PORT.println("Nothing dosed. Skipping mixing");
-  }
+  if (now - lastDoseMillis >= doseInterval) {
+        // perform dosing
+        nut_dosed_check = dose_nutrients(gro, dose[0], bloom, dose[1], micro, dose[2]);
+        ph_dosed_check = dose_ph(ph_up, ph_up_dose, ph_down, ph_down_dose);
 
-  //! This currently pauses serial comms so messes with motors !//
-  // //send_data(DEBUG_PORT, ph_val, ec_val, temp_val); // Display the data in monitor
-  // //send_data(COMM_PORT, ph_val, ec_val, temp_val); // Send data to ESP32
+        if (nut_dosed_check || ph_dosed_check) {
+            mix_resevoir(MIX_PIN_IN1, MIX_PIN_IN2, MIX_PIN_ENA);
+            DEBUG_PORT.println("Dosed. Starting mixing");
+        } else {
+            DEBUG_PORT.println("Nothing dosed. Skipping mixing");
+        }
 
-  DEBUG_PORT.println("still working");
-  // delay(500);
+        lastDoseMillis = now;
+    }
+
+  send_data(DEBUG_PORT, ph_val, ec_val, temp_val); // Display the data in monitor
+  send_data(COMM_PORT, ph_val, ec_val, temp_val); // Send data to ESP32
+
 }
