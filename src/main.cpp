@@ -303,7 +303,7 @@ void loop() {
 
     latest_ec = ec_filter(ec_raw, ec_kalman, 0.1f);
     latest_ph = ph_filter(ph_raw, pH_kalman, 0.1f);
-    latest_ph = fakePhValue(plant.ph_avg); // TODO: remove after pH calibration
+    latest_ph = fakePhValue(plant.ph_avg);
 
     // ── 3. Scheduled dosing every 15 min ───────────────────────────────
     if (now - lastDoseMillis >= doseInterval) {

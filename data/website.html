@@ -392,7 +392,7 @@
 
     <!-- Step 1: Stage -->
     <div class="section-label">1 — Growth Stage</div>
-    <div class="stage-row" id="stageRow">
+    <div class="stage-row" id="stageRow" style="grid-template-columns: repeat(4, 1fr);">
         <div class="stage-btn" data-stage="seedling" onclick="selectStage(this)">
             <span class="s-icon">🌱</span>
             <span class="s-name">Seedling</span>
@@ -406,7 +406,12 @@
         <div class="stage-btn" data-stage="transition" onclick="selectStage(this)">
             <span class="s-icon">🍃</span>
             <span class="s-name">Transition</span>
-            <span class="s-hint">Pre-harvest</span>
+            <span class="s-hint">To Bloom</span>
+        </div>
+        <div class="stage-btn" data-stage="bloom" onclick="selectStage(this)">
+            <span class="s-icon">🌸</span>
+            <span class="s-name">Bloom</span>
+            <span class="s-hint">Ripening</span>
         </div>
     </div>
 
@@ -467,19 +472,32 @@
 // Flora Series dose table (mL per 10 L of water)
 // Based on GH Flora Series Feed Chart
 // ──────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────────────
+// Flora Series dose table (mL per 10 L of water)
+// Source: GH Flora Series Basic Applications Table (ml/100 L ÷ 10)
+//   Seedling:    Gro 3.3 / Micro 3.3 / Bloom 3.3   (33/33/33 per 100L)
+//   Veg Mild:    Gro 13.2 / Micro 13.2 / Bloom 13.2 (132/132/132 per 100L)
+//   Veg Aggro:   Gro 39.6 / Micro 26.4 / Bloom 13.2 (396/264/132 per 100L)
+//   Transition:  Gro 26.4 / Micro 26.4 / Bloom 26.4 (264/264/264 per 100L)
+//   Bloom:       Gro 13.2 / Micro 26.4 / Bloom 39.6 (132/264/396 per 100L)
+// ──────────────────────────────────────────────────────────────────────
 const FLORA = {
-    //               gro  micro bloom  ph_up  ph_dn  target_ec_label
+    //               gro   micro  bloom  ph_up  ph_dn  target_ec_label
     seedling: {
-        mild:        { gro: 2.5, micro: 2.5, bloom: 1.0, ph_up: 1.0, ph_dn: 0.0, ec: "0.4 – 0.8 mS/cm" },
-        aggressive:  { gro: 5.0, micro: 5.0, bloom: 2.5, ph_up: 1.5, ph_dn: 0.0, ec: "0.8 – 1.2 mS/cm" }
+        mild:        { gro:  3.3, micro:  3.3, bloom:  3.3, ph_up: 0.0, ph_dn: 0.0, ec: "0.4 – 0.8 mS/cm" },
+        aggressive:  { gro:  3.3, micro:  3.3, bloom:  3.3, ph_up: 0.0, ph_dn: 0.0, ec: "0.4 – 1.0 mS/cm" }
     },
     veg_mild: {
-        mild:        { gro: 7.5, micro: 5.0, bloom: 2.5, ph_up: 1.0, ph_dn: 0.0, ec: "1.0 – 1.4 mS/cm" },
-        aggressive:  { gro:15.0, micro:10.0, bloom: 5.0, ph_up: 2.0, ph_dn: 0.0, ec: "1.6 – 2.0 mS/cm" }
+        mild:        { gro: 13.2, micro: 13.2, bloom: 13.2, ph_up: 0.0, ph_dn: 0.0, ec: "1.0 – 1.0 mS/cm" },
+        aggressive:  { gro: 39.6, micro: 26.4, bloom: 13.2, ph_up: 0.0, ph_dn: 0.0, ec: "1.6 – 2.2 mS/cm" }
     },
     transition: {
-        mild:        { gro: 5.0, micro: 7.5, bloom: 5.0, ph_up: 1.0, ph_dn: 0.0, ec: "1.2 – 1.6 mS/cm" },
-        aggressive:  { gro:10.0, micro:15.0, bloom:10.0, ph_up: 2.0, ph_dn: 0.0, ec: "1.8 – 2.4 mS/cm" }
+        mild:        { gro: 26.4, micro: 26.4, bloom: 26.4, ph_up: 0.0, ph_dn: 0.0, ec: "1.4 – 1.8 mS/cm" },
+        aggressive:  { gro: 26.4, micro: 26.4, bloom: 26.4, ph_up: 0.0, ph_dn: 0.0, ec: "1.4 – 1.8 mS/cm" }
+    },
+    bloom: {
+        mild:        { gro: 13.2, micro: 26.4, bloom: 39.6, ph_up: 0.0, ph_dn: 0.0, ec: "1.6 – 2.2 mS/cm" },
+        aggressive:  { gro: 13.2, micro: 26.4, bloom: 39.6, ph_up: 0.0, ph_dn: 0.0, ec: "1.6 – 2.2 mS/cm" }
     }
 };
 
