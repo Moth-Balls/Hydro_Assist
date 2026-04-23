@@ -3,71 +3,797 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hydro-Assist Monitor</title>
+    <title>Hydro-Assist Master Controller</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * { 
-            margin: 0; padding: 0; box-sizing: border-box; 
-            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24"><path fill="%234caf50" d="M12,2C12,2 6,6 6,12C6,16 8,18 11,19V22H13V19C16,18 18,16 18,12C18,6 12,2 12,2M12,4C12,4 16,8 16,12C16,15 14.5,16.5 12,17V4Z"/></svg>') 12 2, auto !important;
+        :root {
+            --bg:       #0d1117;
+            --surface:  #161b22;
+            --border:   #30363d;
+            --green:    #3fb950;
+            --green-dim:#1a4022;
+            --yellow:   #d29922;
+            --red:      #f85149;
+            --blue:     #58a6ff;
+            --text:     #e6edf3;
+            --muted:    #8b949e;
+            --radius:   10px;
         }
-        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; color: #333; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        header { text-align: center; color: white; margin-bottom: 30px; }
-        .status { display: inline-block; padding: 8px 16px; border-radius: 20px; font-weight: bold; margin-top: 10px; background: #f44336; color: white; }
-        .status.connected { background-color: #4caf50; }
-        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .sensor-card { background: white; border-radius: 15px; padding: 30px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); text-align: center; }
-        .sensor-value { font-size: 3.5em; font-weight: bold; color: #667eea; margin: 15px 0; }
-        .controls { background: white; border-radius: 15px; padding: 20px; margin-bottom: 30px; display: flex; gap: 10px; align-items: center; }
-        select, button { padding: 10px; border-radius: 5px; border: 1px solid #ddd; font-weight: bold; cursor: inherit; }
-        .charts-section { background: white; border-radius: 15px; padding: 20px; }
-        .chart-container { position: relative; height: 250px; }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'DM Mono', monospace;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 24px 20px;
+        }
+
+        /* ── Layout ── */
+        .wrap { max-width: 1100px; margin: 0 auto; }
+
+        header {
+            display: flex;
+            align-items: baseline;
+            gap: 16px;
+            margin-bottom: 28px;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 18px;
+        }
+        header h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.5rem;
+            letter-spacing: -0.02em;
+            color: var(--text);
+        }
+        .tag {
+            font-size: .7rem;
+            padding: 3px 8px;
+            border-radius: 20px;
+            background: var(--green-dim);
+            color: var(--green);
+            border: 1px solid var(--green);
+            letter-spacing: .06em;
+        }
+
+        /* ── Status bar ── */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            margin-bottom: 20px;
+            font-size: .8rem;
+            color: var(--muted);
+        }
+        .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: var(--muted); flex-shrink: 0;
+        }
+        .dot.live { background: var(--green); box-shadow: 0 0 8px var(--green); animation: blink 2s infinite; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+        /* ── Control row ── */
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            align-items: center;
+        }
+        select {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 9px 12px;
+            border-radius: var(--radius);
+            font-family: inherit;
+            font-size: .85rem;
+            flex: 1;
+            min-width: 200px;
+            cursor: pointer;
+        }
+        select option { background: var(--surface); }
+
+        .btn {
+            font-family: 'DM Mono', monospace;
+            font-size: .8rem;
+            font-weight: 500;
+            padding: 9px 18px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            cursor: pointer;
+            transition: all .15s;
+            background: var(--surface);
+            color: var(--text);
+            white-space: nowrap;
+        }
+        .btn:hover { border-color: var(--blue); color: var(--blue); }
+        .btn.primary { background: var(--green); color: #000; border-color: var(--green); }
+        .btn.primary:hover { filter: brightness(1.15); }
+        .btn.danger { border-color: var(--red); color: var(--red); }
+        .btn.danger:hover { background: var(--red); color: #fff; }
+        .btn.accent { border-color: var(--yellow); color: var(--yellow); }
+        .btn.accent:hover { background: var(--yellow); color: #000; }
+        .btn.stop { background: var(--red); color: #fff; border-color: var(--red); }
+        .btn.stop:hover { filter: brightness(1.1); }
+
+        /* ── Sensor cards ── */
+        .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin-bottom: 20px; }
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+        }
+        .card-label { font-size: .7rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 8px; }
+        .card-value { font-family: 'Syne', sans-serif; font-size: 2.4rem; font-weight: 800; color: var(--text); line-height: 1; }
+        .card-target { font-size: .72rem; color: var(--muted); margin-top: 6px; }
+        .card.ok   .card-value { color: var(--green); }
+        .card.warn .card-value { color: var(--yellow); }
+        .card.bad  .card-value { color: var(--red); }
+
+        /* ── Charts ── */
+        .charts {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .chart-wrap { position: relative; height: 200px; margin-bottom: 16px; }
+        .chart-wrap:last-child { margin-bottom: 0; }
+        .charts-title { font-size: .7rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 16px; }
+
+        /* ══════════════════════════════════════
+           LOADING DOSE MODAL
+        ══════════════════════════════════════ */
+        .overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,.75);
+            backdrop-filter: blur(6px);
+            z-index: 100;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .overlay.open { display: flex; }
+
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            width: 100%;
+            max-width: 640px;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 28px;
+            position: relative;
+            animation: slideUp .2s ease;
+        }
+        @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+        .modal-close {
+            position: absolute; top: 16px; right: 16px;
+            background: none; border: none; color: var(--muted);
+            font-size: 1.2rem; cursor: pointer; line-height: 1;
+            transition: color .15s;
+        }
+        .modal-close:hover { color: var(--text); }
+
+        .modal h2 {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.25rem;
+            margin-bottom: 4px;
+        }
+        .modal-sub { font-size: .78rem; color: var(--muted); margin-bottom: 24px; }
+
+        /* Stage selector */
+        .stage-row {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 22px;
+        }
+        .stage-btn {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all .15s;
+            font-family: 'DM Mono', monospace;
+        }
+        .stage-btn .s-icon { font-size: 1.5rem; display: block; margin-bottom: 6px; }
+        .stage-btn .s-name { font-size: .75rem; color: var(--text); display: block; font-weight: 500; }
+        .stage-btn .s-hint { font-size: .65rem; color: var(--muted); display: block; margin-top: 3px; }
+        .stage-btn:hover { border-color: var(--blue); }
+        .stage-btn.sel { border-color: var(--green); background: var(--green-dim); }
+        .stage-btn.sel .s-name { color: var(--green); }
+
+        /* Aggression selector */
+        .section-label { font-size: .7rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
+
+        .aggro-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 22px;
+        }
+        .aggro-btn {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: all .15s;
+            font-family: 'DM Mono', monospace;
+            text-align: left;
+        }
+        .aggro-btn .a-name { font-size: .82rem; color: var(--text); font-weight: 500; display: block; margin-bottom: 4px; }
+        .aggro-btn .a-desc { font-size: .68rem; color: var(--muted); display: block; line-height: 1.5; }
+        .aggro-btn:hover { border-color: var(--blue); }
+        .aggro-btn.sel.mild  { border-color: var(--green); background: var(--green-dim); }
+        .aggro-btn.sel.mild .a-name { color: var(--green); }
+        .aggro-btn.sel.aggressive { border-color: var(--yellow); background: #2a2000; }
+        .aggro-btn.sel.aggressive .a-name { color: var(--yellow); }
+
+        /* Dose preview table */
+        .dose-preview {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            margin-bottom: 22px;
+        }
+        .dose-preview-title { font-size: .7rem; color: var(--muted); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 12px; }
+        .dose-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0;
+            border-bottom: 1px solid var(--border);
+            font-size: .82rem;
+        }
+        .dose-row:last-child { border-bottom: none; }
+        .dose-name { color: var(--muted); }
+        .dose-name span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+        .dose-ml { color: var(--text); font-weight: 500; }
+        .dose-ml.zero { color: var(--border); }
+        .dose-total {
+            display: flex; justify-content: space-between;
+            font-size: .78rem; color: var(--muted);
+            margin-top: 10px; padding-top: 10px;
+            border-top: 1px solid var(--border);
+        }
+        .dose-total strong { color: var(--text); }
+
+        /* Volume note */
+        .volume-note {
+            font-size: .72rem;
+            color: var(--muted);
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 10px 14px;
+            margin-bottom: 22px;
+            line-height: 1.6;
+        }
+        .volume-note span { color: var(--blue); }
+
+        /* Modal actions */
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+        /* Confirmation state */
+        .confirm-bar {
+            display: none;
+            align-items: center;
+            justify-content: space-between;
+            background: #1c1000;
+            border: 1px solid var(--yellow);
+            border-radius: var(--radius);
+            padding: 12px 16px;
+            margin-bottom: 16px;
+            font-size: .8rem;
+            color: var(--yellow);
+            animation: fadeIn .2s;
+        }
+        .confirm-bar.show { display: flex; }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 24px; right: 24px;
+            background: var(--surface);
+            border: 1px solid var(--green);
+            color: var(--green);
+            padding: 12px 20px;
+            border-radius: var(--radius);
+            font-size: .82rem;
+            z-index: 200;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all .3s;
+            pointer-events: none;
+        }
+        .toast.show { opacity: 1; transform: translateY(0); }
+        .toast.error { border-color: var(--red); color: var(--red); }
+
+        /* Protocol info strip */
+        #pInfo { font-size: .78rem; color: var(--muted); margin-bottom: 16px; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header><h1>pH/EC Sensor Monitor</h1><div id="stat" class="status">Disconnected</div></header>
-        <div class="controls">
-            <select id="pSel"><option value="">Select a plant...</option></select>
-            <div id="pInfo" style="margin-left: 20px; font-weight: bold; color: #667eea;"></div>
+<div class="wrap">
+
+    <header>
+        <h1>Hydro-Assist</h1>
+        <span class="tag">MASTER CONTROLLER</span>
+    </header>
+
+    <div class="status-bar">
+        <div class="dot" id="dot"></div>
+        <span id="statusTxt">STANDBY</span>
+        <span style="margin-left:auto; font-size:.72rem" id="lastCheck"></span>
+    </div>
+
+    <div class="controls">
+        <button class="btn primary" onclick="toggleSystem()" id="btnMaster">▶ START</button>
+        <select id="pSel"><option value="">— Select Crop Protocol —</option></select>
+        <button class="btn accent" onclick="openLoadingDose()">⚗ Loading Dose</button>
+        <!-- <button class="btn" onclick="sendTest()">⚡ Inject Test Data</button> -->
+        <button class="btn danger" onclick="clearData()">✕ Reset</button>
+    </div>
+
+    <div id="pInfo"></div>
+
+    <div class="cards">
+        <div class="card" id="cardPh">
+            <div class="card-label">pH Level</div>
+            <div class="sensor-value card-value" id="phV">--</div>
+            <div class="card-target" id="phT">Target: --</div>
         </div>
-        <div class="dashboard">
-            <div class="sensor-card"><div>💧 pH Level</div><div class="sensor-value" id="phV">--</div><div id="phT" style="color:#999">Target: --</div></div>
-            <div class="sensor-card"><div>⚡ EC Level</div><div class="sensor-value" id="ecV">--</div><div id="ecT" style="color:#999">Target: --</div></div>
+        <div class="card" id="cardEc">
+            <div class="card-label">EC Level  <span style="font-size:.65rem;color:var(--muted)">mS/cm</span></div>
+            <div class="sensor-value card-value" id="ecV">--</div>
+            <div class="card-target" id="ecT">Target: --</div>
         </div>
-        <div class="charts-section">
-            <h2>Historical Data (15 Min Window)</h2>
-            <div class="chart-container"><canvas id="phC"></canvas></div>
-            <div class="chart-container"><canvas id="ecC"></canvas></div>
+        <div class="card" id="cardTemp">
+            <div class="card-label">Temperature  <span style="font-size:.65rem;color:var(--muted)">°C</span></div>
+            <div class="sensor-value card-value" id="tempV">--</div>
+            <div class="card-target">Optimal: 18 – 24 °C</div>
         </div>
     </div>
-    <script>
-        let sData = []; let phChart, ecChart; let selP = null;
-        const MAX_POINTS = 90; 
-        const pData = [{n:"Arugula", pha:6.5, phr:"6.0-7.0", ecr:"0.8-1.2"}, {n:"Lettuce", pha:6.5, phr:"6.0-7.0", ecr:"0.8-1.2"}];
-        
-        function init() {
-            const ctxP = document.getElementById('phC').getContext('2d'); const ctxE = document.getElementById('ecC').getContext('2d');
-            const cfg = { type:'line', data:{ labels:[], datasets:[{ data:[], tension:0.4, fill:true }] }, options:{ responsive:true, maintainAspectRatio:false, animation: false } };
-            phChart = new Chart(ctxP, JSON.parse(JSON.stringify(cfg))); phChart.data.datasets[0].label = 'pH'; phChart.data.datasets[0].borderColor = '#667eea';
-            ecChart = new Chart(ctxE, JSON.parse(JSON.stringify(cfg))); ecChart.data.datasets[0].label = 'EC'; ecChart.data.datasets[0].borderColor = '#764ba2';
-            const s = document.getElementById('pSel'); pData.forEach((p,i)=>{ let o=document.createElement('option'); o.value=i; o.innerText=p.n; s.appendChild(o); });
-            s.onchange = (e) => { selP = pData[e.target.value] || null; updateUI(); };
+
+    <div class="charts">
+        <div class="charts-title">Sensor History — last 50 readings</div>
+        <div class="chart-wrap"><canvas id="phC"></canvas></div>
+        <div class="chart-wrap"><canvas id="ecC"></canvas></div>
+    </div>
+
+</div><!-- /wrap -->
+
+
+<!-- ═══════════════════════════════════════════
+     LOADING DOSE MODAL
+═══════════════════════════════════════════ -->
+<div class="overlay" id="ldOverlay" onclick="overlayClick(event)">
+<div class="modal" id="ldModal">
+    <button class="modal-close" onclick="closeLoadingDose()">✕</button>
+    <h2>⚗ Loading Dose</h2>
+    <p class="modal-sub">GH Flora Series — select growth stage and target strength. Doses are calculated per 10 L of reservoir volume.</p>
+
+    <!-- Step 1: Stage -->
+    <div class="section-label">1 — Growth Stage</div>
+    <div class="stage-row" id="stageRow">
+        <div class="stage-btn" data-stage="seedling" onclick="selectStage(this)">
+            <span class="s-icon">🌱</span>
+            <span class="s-name">Seedling</span>
+            <span class="s-hint">Week 1–2</span>
+        </div>
+        <div class="stage-btn" data-stage="veg_mild" onclick="selectStage(this)">
+            <span class="s-icon">🌿</span>
+            <span class="s-name">Vegetative</span>
+            <span class="s-hint">Week 3–5</span>
+        </div>
+        <div class="stage-btn" data-stage="transition" onclick="selectStage(this)">
+            <span class="s-icon">🍃</span>
+            <span class="s-name">Transition</span>
+            <span class="s-hint">Pre-harvest</span>
+        </div>
+    </div>
+
+    <!-- Step 2: Aggression -->
+    <div class="section-label">2 — Nutrient Strength</div>
+    <div class="aggro-row" id="aggroRow">
+        <div class="aggro-btn mild" data-level="mild" onclick="selectAggro(this)">
+            <span class="a-name">🌱 Mild</span>
+            <span class="a-desc">Conservative doses for sensitive plants, new systems, or soft water. Lower EC, reduced stress.</span>
+        </div>
+        <div class="aggro-btn aggressive" data-level="aggressive" onclick="selectAggro(this)">
+            <span class="a-name">🔥 Aggressive</span>
+            <span class="a-desc">Full-strength Flora Series schedule. Maximum vegetative push, higher EC target.</span>
+        </div>
+    </div>
+
+    <!-- Step 3: Preview -->
+    <div class="dose-preview" id="dosePreview">
+        <div class="dose-preview-title">Dose Preview — select stage &amp; strength above</div>
+        <div id="doseRows">
+            <div class="dose-row"><span class="dose-name"><span style="background:#3fb950"></span>Flora Gro™</span>        <span class="dose-ml zero">— mL</span></div>
+            <div class="dose-row"><span class="dose-name"><span style="background:#58a6ff"></span>Flora Micro™</span>     <span class="dose-ml zero">— mL</span></div>
+            <div class="dose-row"><span class="dose-name"><span style="background:#d29922"></span>Flora Bloom™</span>     <span class="dose-ml zero">— mL</span></div>
+            <div class="dose-row"><span class="dose-name"><span style="background:#8b949e"></span>pH Up</span>            <span class="dose-ml zero">— mL</span></div>
+            <div class="dose-row"><span class="dose-name"><span style="background:#f85149"></span>pH Down</span>          <span class="dose-ml zero">— mL</span></div>
+        </div>
+        <div class="dose-total">
+            <span>Target EC after dose</span>
+            <strong id="ecTarget">—</strong>
+        </div>
+    </div>
+
+    <div class="volume-note">
+        ⚠ Doses shown are per <span>10 L</span> of reservoir. The controller will scale automatically based on the tracked reservoir volume at the time of dosing.
+    </div>
+
+    <!-- Confirm warning -->
+    <div class="confirm-bar" id="confirmBar">
+        <span>⚠ Confirm: this will immediately dispense nutrients into the reservoir.</span>
+        <div style="display:flex;gap:8px;flex-shrink:0;margin-left:16px">
+            <button class="btn" onclick="cancelConfirm()">Cancel</button>
+            <button class="btn accent" onclick="executeDose()">Confirm &amp; Dose</button>
+        </div>
+    </div>
+
+    <div class="modal-actions">
+        <button class="btn" onclick="closeLoadingDose()">Close</button>
+        <button class="btn accent" id="btnDose" onclick="requestConfirm()" disabled>Prepare Dose →</button>
+    </div>
+</div>
+</div>
+
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ──────────────────────────────────────────────
+// Flora Series dose table (mL per 10 L of water)
+// Based on GH Flora Series Feed Chart
+// ──────────────────────────────────────────────
+const FLORA = {
+    //               gro  micro bloom  ph_up  ph_dn  target_ec_label
+    seedling: {
+        mild:        { gro: 2.5, micro: 2.5, bloom: 1.0, ph_up: 1.0, ph_dn: 0.0, ec: "0.4 – 0.8 mS/cm" },
+        aggressive:  { gro: 5.0, micro: 5.0, bloom: 2.5, ph_up: 1.5, ph_dn: 0.0, ec: "0.8 – 1.2 mS/cm" }
+    },
+    veg_mild: {
+        mild:        { gro: 7.5, micro: 5.0, bloom: 2.5, ph_up: 1.0, ph_dn: 0.0, ec: "1.0 – 1.4 mS/cm" },
+        aggressive:  { gro:15.0, micro:10.0, bloom: 5.0, ph_up: 2.0, ph_dn: 0.0, ec: "1.6 – 2.0 mS/cm" }
+    },
+    transition: {
+        mild:        { gro: 5.0, micro: 7.5, bloom: 5.0, ph_up: 1.0, ph_dn: 0.0, ec: "1.2 – 1.6 mS/cm" },
+        aggressive:  { gro:10.0, micro:15.0, bloom:10.0, ph_up: 2.0, ph_dn: 0.0, ec: "1.8 – 2.4 mS/cm" }
+    }
+};
+
+// ── State ──
+let selStage = null;
+let selLevel = null;
+let sData = [];
+let phChart, ecChart;
+let selP = null;
+let masterInterval = null;
+let isSystemRunning = false;
+const MAX_PTS = 50;
+
+const pData = [
+    { n:"Arugula",  phr:"6.0–6.8", ecr:"0.8–1.2",  phl:6.0, phh:7.0, ecl:0.8, ech:1.2 },
+    { n:"Lettuce",  phr:"6.0–7.0", ecr:"0.8–1.2",  phl:6.0, phh:7.0, ecl:0.8, ech:1.2 },
+    { n:"Spinach",  phr:"6.0–7.0", ecr:"1.8–2.3",  phl:6.0, phh:7.0, ecl:1.8, ech:2.3 }
+];
+
+// ── Charts ──
+function init() {
+    const mk = (id, label, color) => new Chart(
+        document.getElementById(id).getContext('2d'), {
+            type: 'line',
+            data: { labels:[], datasets:[{
+                label, data:[],
+                borderColor: color,
+                borderWidth: 1.5,
+                pointRadius: 0,
+                tension: 0.4,
+                fill: true,
+                backgroundColor: color + '18'
+            }]},
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                plugins: { legend: { labels: { color:'#8b949e', font:{ family:'DM Mono', size:11 } } } },
+                scales: {
+                    x: { ticks:{ color:'#8b949e', font:{size:10}, maxTicksLimit:8 }, grid:{color:'#21262d'} },
+                    y: { ticks:{ color:'#8b949e', font:{size:10} }, grid:{color:'#21262d'} }
+                }
+            }
         }
-        function updateUI() { if(selP) { document.getElementById('pInfo').innerText = "Growing: " + selP.n; document.getElementById('phT').innerText = "Target: " + selP.phr; document.getElementById('ecT').innerText = "Target: " + selP.ecr; } }
-        async function fetchD() {
-            try {
-                const r = await fetch('/data'); const d = await r.json();
-                document.getElementById('phV').innerText = d.ph.toFixed(2); document.getElementById('ecV').innerText = d.ec.toFixed(0);
-                document.getElementById('stat').innerText = "Connected"; document.getElementById('stat').classList.add('connected');
-                const t = new Date().toLocaleTimeString(); 
-                sData.push({t, ph:d.ph, ec:d.ec}); 
-                if(sData.length > MAX_POINTS) sData.shift(); 
-                phChart.data.labels = sData.map(x=>x.t); phChart.data.datasets[0].data = sData.map(x=>x.ph); phChart.update('none');
-                ecChart.data.labels = sData.map(x=>x.t); ecChart.data.datasets[0].data = sData.map(x=>x.ec); ecChart.update('none');
-            } catch(e) { document.getElementById('stat').innerText = "Disconnected"; document.getElementById('stat').classList.remove('connected'); }
+    );
+    phChart = mk('phC', 'pH', '#58a6ff');
+    ecChart = mk('ecC', 'EC (mS/cm)', '#3fb950');
+
+    const s = document.getElementById('pSel');
+    pData.forEach((p,i) => {
+        const o = document.createElement('option'); o.value = i; o.textContent = p.n; s.appendChild(o);
+    });
+    s.onchange = e => {
+        selP = pData[e.target.value] ?? null;
+        updatePlantUI();
+        if (selP) sendProfile(selP);
+    };
+
+    // Listen for live SSE data from ESP32
+    const evtSrc = new EventSource('/events');
+    evtSrc.addEventListener('sensor', e => {
+        try {
+            const d = JSON.parse(e.data);
+            pushData(d.ph, d.ec, d.temp);
+        } catch {}
+    });
+    evtSrc.onerror = () => {};
+}
+
+function updatePlantUI() {
+    if (!selP) return;
+    document.getElementById('pInfo').textContent = `Protocol: ${selP.n}  ·  pH ${selP.phr}  ·  EC ${selP.ecr} mS/cm`;
+    document.getElementById('phT').textContent  = `Target: ${selP.phr}`;
+    document.getElementById('ecT').textContent  = `Target: ${selP.ecr} mS/cm`;
+}
+
+// Forward the selected plant's min/max/avg for EC (mS/cm) and pH to the
+// ESP32, which repackages and sends M:2003 to the controller MCU.
+function sendProfile(p) {
+    const payload = {
+        ec_min: p.ecl,
+        ec_max: p.ech,
+        ec_avg: (p.ecl + p.ech) / 2,
+        ph_min: p.phl,
+        ph_max: p.phh,
+        ph_avg: (p.phl + p.phh) / 2
+    };
+
+    fetch('/set-profile', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload)
+    })
+    .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    })
+    .then(() => showToast(`✓ Profile sent: ${p.n}`))
+    .catch(err => showToast('✗ Profile send failed: ' + err.message, true));
+}
+
+function pushData(ph, ec, temp = null) {
+    const t = new Date().toLocaleTimeString();
+    sData.unshift({ t, ph, ec, temp });
+    if (sData.length > MAX_PTS) sData.pop();
+
+    document.getElementById('phV').textContent   = ph.toFixed(2);
+    document.getElementById('ecV').textContent   = ec.toFixed(2);
+    if (temp !== null) document.getElementById('tempV').textContent = temp.toFixed(1);
+
+    // Card colour coding
+    if (selP) {
+        setCardState('cardPh',   ph,  selP.phl, selP.phh);
+        setCardState('cardEc',   ec,  selP.ecl,  selP.ech);
+    }
+
+    const rev = [...sData].reverse();
+    phChart.data.labels             = rev.map(x => x.t);
+    phChart.data.datasets[0].data   = rev.map(x => x.ph);
+    ecChart.data.labels             = rev.map(x => x.t);
+    ecChart.data.datasets[0].data   = rev.map(x => x.ec);
+    phChart.update('none');
+    ecChart.update('none');
+}
+
+function setCardState(id, val, lo, hi) {
+    const c = document.getElementById(id);
+    c.classList.remove('ok','warn','bad');
+    if (val >= lo && val <= hi)            c.classList.add('ok');
+    else if (val < lo * .9 || val > hi * 1.1) c.classList.add('bad');
+    else                                    c.classList.add('warn');
+}
+
+// ── System toggle ──
+// Sends desired run-state to the ESP32 (/set-state → MCU M:2002).
+// The UI only flips on successful POST; on failure we toast and leave
+// the button in its previous state so the UI can't lie about the MCU.
+function toggleSystem() {
+    const btn = document.getElementById('btnMaster');
+    const dot = document.getElementById('dot');
+    const desired = !isSystemRunning;
+
+    // Disable the button during the round-trip to prevent double-clicks.
+    btn.disabled = true;
+
+    fetch('/set-state', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ run: desired })
+    })
+    .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    })
+    .then(() => {
+        if (desired) {
+            isSystemRunning = true;
+            btn.textContent = '■ STOP';
+            btn.classList.remove('primary'); btn.classList.add('stop');
+            dot.className = 'dot live';
+            masterInterval = setInterval(runCheck, 10000);
+            runCheck();
+            showToast('✓ System started');
+        } else {
+            clearInterval(masterInterval); masterInterval = null;
+            isSystemRunning = false;
+            btn.textContent = '▶ START';
+            btn.classList.remove('stop'); btn.classList.add('primary');
+            dot.className = 'dot';
+            document.getElementById('statusTxt').textContent = 'STANDBY';
+            showToast('✓ System stopped');
         }
-        window.onload = () => { init(); setInterval(fetchD, 10000); };
-    </script>
+    })
+    .catch(err => {
+        showToast('✗ Could not reach controller: ' + err.message, true);
+    })
+    .finally(() => {
+        btn.disabled = false;
+    });
+}
+function runCheck() {
+    const t = new Date().toLocaleTimeString();
+    document.getElementById('statusTxt').textContent = 'RUNNING';
+    document.getElementById('lastCheck').textContent = `last check ${t}`;
+}
+
+// ── Test data ──
+function sendTest() {
+    const ph   = 5.5  + Math.random() * 1.5;
+    const ec   = 0.8  + Math.random() * 0.5;
+    const temp = 18   + Math.random() * 8;
+    pushData(ph, ec, temp);
+}
+
+function clearData() {
+    if (!confirm('Clear all historical data?')) return;
+    sData = [];
+    ['phV','ecV','tempV'].forEach(id => document.getElementById(id).textContent = '--');
+    ['cardPh','cardEc','cardTemp'].forEach(id => {
+        document.getElementById(id).classList.remove('ok','warn','bad');
+    });
+    phChart.data.labels = []; phChart.data.datasets[0].data = [];
+    ecChart.data.labels = []; ecChart.data.datasets[0].data = [];
+    phChart.update(); ecChart.update();
+}
+
+
+// ══════════════════════════════════════════════
+//  LOADING DOSE MODAL
+// ══════════════════════════════════════════════
+
+function openLoadingDose() {
+    document.getElementById('ldOverlay').classList.add('open');
+}
+function closeLoadingDose() {
+    document.getElementById('ldOverlay').classList.remove('open');
+    document.getElementById('confirmBar').classList.remove('show');
+}
+function overlayClick(e) {
+    if (e.target === document.getElementById('ldOverlay')) closeLoadingDose();
+}
+
+function selectStage(el) {
+    document.querySelectorAll('.stage-btn').forEach(b => b.classList.remove('sel'));
+    el.classList.add('sel');
+    selStage = el.dataset.stage;
+    updateDosePreview();
+}
+function selectAggro(el) {
+    document.querySelectorAll('.aggro-btn').forEach(b => b.classList.remove('sel'));
+    el.classList.add('sel');
+    selLevel = el.dataset.level;
+    updateDosePreview();
+}
+
+function updateDosePreview() {
+    const ready = selStage && selLevel;
+    document.getElementById('btnDose').disabled = !ready;
+    document.getElementById('confirmBar').classList.remove('show');
+
+    const rows = document.querySelectorAll('#doseRows .dose-row');
+    const nutrients = ['gro','micro','bloom','ph_up','ph_dn'];
+    const labels    = ['Flora Gro™','Flora Micro™','Flora Bloom™','pH Up','pH Down'];
+    const colors    = ['#3fb950','#58a6ff','#d29922','#8b949e','#f85149'];
+
+    if (!ready) {
+        rows.forEach(r => {
+            r.querySelector('.dose-ml').textContent = '— mL';
+            r.querySelector('.dose-ml').className   = 'dose-ml zero';
+        });
+        document.getElementById('ecTarget').textContent = '—';
+        return;
+    }
+
+    const d = FLORA[selStage][selLevel];
+    nutrients.forEach((k, i) => {
+        const ml  = d[k];
+        const cel = rows[i].querySelector('.dose-ml');
+        const dot = rows[i].querySelector('.dose-name span');
+        dot.style.background = colors[i];
+        cel.textContent = ml > 0 ? `${ml} mL` : '0 mL';
+        cel.className   = ml > 0 ? 'dose-ml' : 'dose-ml zero';
+    });
+    document.getElementById('ecTarget').textContent = d.ec;
+    document.getElementById('dosePreview').querySelector('.dose-preview-title').textContent =
+        'Dose Preview — per 10 L reservoir';
+}
+
+function requestConfirm() {
+    if (!selStage || !selLevel) return;
+    document.getElementById('confirmBar').classList.add('show');
+}
+function cancelConfirm() {
+    document.getElementById('confirmBar').classList.remove('show');
+}
+
+function executeDose() {
+    const d = FLORA[selStage][selLevel];
+    const payload = {
+        stage:    selStage,
+        level:    selLevel,
+        gro_ml:   d.gro,
+        micro_ml: d.micro,
+        bloom_ml: d.bloom,
+        ph_up_ml: d.ph_up,
+        ph_dn_ml: d.ph_dn
+    };
+
+    fetch('/loading-dose', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload)
+    })
+    .then(r => {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    })
+    .then(res => {
+        showToast(res.ok
+            ? `✓ Loading dose sent — ${selStage} / ${selLevel}`
+            : `✗ Controller error: ${res.msg}`, !res.ok);
+        closeLoadingDose();
+    })
+    .catch(err => {
+        showToast('✗ Could not reach controller: ' + err.message, true);
+    });
+}
+
+function showToast(msg, isError = false) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className   = 'toast' + (isError ? ' error' : '') + ' show';
+    setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+window.onload = init;
+</script>
 </body>
 </html>

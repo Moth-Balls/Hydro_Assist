@@ -5,40 +5,73 @@
 #include <array>
 #include <ArduinoJson.h>
 
+// ─────────────────────────────────────────────
+// Message type constants  (M field values)
+// ─────────────────────────────────────────────
+static constexpr uint16_t MSG_SENSOR_REQUEST  = 1001; // ESP32 → Arduino: "give me sensor data"
+static constexpr uint16_t MSG_SENSOR_RESPONSE = 1002; // Arduino → ESP32: sensor payload
+static constexpr uint16_t MSG_LOAD_DOSE       = 2001; // ESP32 → Arduino: loading dose command
+static constexpr uint16_t MSG_SYSTEM_STATE    = 2002; // ESP32 → Arduino: start/stop system
+static constexpr uint16_t MSG_SET_PROFILE     = 2003; // ESP32 → Arduino: plant profile (EC/pH ranges)
 
-void send_data(Stream &comm_port, const float &ph_val, const float &ec_val, const float &temp_val) {
+
+// ─────────────────────────────────────────────
+// Send sensor data  (Arduino → ESP32)
+// ─────────────────────────────────────────────
+void send_sensor_data(Stream &port, float ph, float ec, float temp) {
     JsonDocument msg;
-    msg["pH"] = ph_val;
-    msg["ec"] = ec_val;
-    msg["temp"] = temp_val;
-
-    serializeJson(msg, comm_port);
-    comm_port.print('\n');
+    msg["M"]    = MSG_SENSOR_RESPONSE;
+    msg["pH"]   = ph;
+    msg["ec"]   = ec;
+    msg["temp"] = temp;
+    serializeJson(msg, port);
+    port.print('\n');
 }
 
-std::array<float, 3> read_data(Stream &comm_port, Stream &logger_port) {
-    static constexpr uint8_t size = 255;
-    char buffer[size];
+// ── Legacy alias so existing send_data() calls in main.cpp still compile ──
+void send_data(Stream &port, const float &ph, const float &ec, const float &temp) {
+    send_sensor_data(port, ph, ec, temp);
+}
 
-    size_t bytesRead = comm_port.readBytesUntil('\n', buffer, size - 1);
-    buffer[bytesRead] = '\0';
 
-    if (bytesRead < 10) {
-        return {0.0f, 0.0f, 0.0f}; 
+// ─────────────────────────────────────────────
+// Non-blocking line reader
+//
+// Call this every loop(). Returns true when a
+// complete '\n'-terminated line is ready in
+// `out_buf`. Does NOT block.
+// ─────────────────────────────────────────────
+static constexpr uint8_t COMM_BUF_SIZE = 255;
+
+struct CommReader {
+    char    buf[COMM_BUF_SIZE];
+    uint8_t idx = 0;
+
+    // Returns true when a full line has arrived.
+    bool poll(Stream &port) {
+        while (port.available() > 0) {
+            char c = static_cast<char>(port.read());
+            if (c == '\n') {
+                buf[idx] = '\0';
+                idx = 0;
+                return true;          // caller can now parse buf
+            }
+            if (idx < COMM_BUF_SIZE - 1) {
+                buf[idx++] = c;
+            }
+            // overflow: silently drop and reset
+            else { idx = 0; }
+        }
+        return false;
     }
-    
-    JsonDocument msg;
-    DeserializationError error = deserializeJson(msg, buffer);
+};
 
-    if (error) {
-        logger_port.print("JSON error: ");
-        logger_port.println(error.c_str());
-        return {0.0f, 0.0f, 0.0f}; 
-    }
 
-    float ph = msg["pH"];
-    float ec = msg["ec"];
-    float temp = msg["temp"];
-
-    return {ph, ec, temp};
+// ─────────────────────────────────────────────
+// Parse a received line into a JsonDocument.
+// Returns false if the JSON is malformed.
+// ─────────────────────────────────────────────
+bool parse_message(const char *line, JsonDocument &doc) {
+    DeserializationError err = deserializeJson(doc, line);
+    return !err;
 }

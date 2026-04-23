@@ -77,38 +77,30 @@ void Motor::dose(float volume) {
 }
 
 
-bool dose_nutrients(Motor &nutrient_1_motor, float nutrient_1_amount, Motor &nutrient_2_motor, float nutrient_2_amount, Motor &nutrient_3_motor, float nutrient_3_amount) {
-
-    if ((nutrient_1_amount || nutrient_2_amount || nutrient_3_amount) > 0.0)
-    {
+bool dose_nutrients(Motor &nutrient_1_motor, float nutrient_1_amount,
+                    Motor &nutrient_2_motor, float nutrient_2_amount,
+                    Motor &nutrient_3_motor, float nutrient_3_amount) {
+ 
+    if (nutrient_1_amount > 0.0f || nutrient_2_amount > 0.0f || nutrient_3_amount > 0.0f) {
         nutrient_1_motor.dose(nutrient_1_amount);
         nutrient_2_motor.dose(nutrient_2_amount);
         nutrient_3_motor.dose(nutrient_3_amount);
-
         return true;
-    } else {
-
-        return false;
     }
-    
-    
+ 
+    return false;
 }
 
-bool dose_ph(Motor &ph_up_motor, float &ph_up_amount, Motor &ph_down_motor, float &ph_down_amount) {
-
-    if ((ph_up_amount || ph_down_amount) > 0.0)
-    {
+bool dose_ph(Motor &ph_up_motor, float &ph_up_amount,
+             Motor &ph_down_motor, float &ph_down_amount) {
+ 
+    if (ph_up_amount > 0.0f || ph_down_amount > 0.0f) {
         ph_up_motor.dose(ph_up_amount);
         ph_down_motor.dose(ph_down_amount);
-
         return true;
-    } else {
-
-        return false;
     }
-
-    
-
+ 
+    return false;
 }
 
 void mix_resevoir(uint8_t IN1, uint8_t IN2, uint8_t ENA) {
