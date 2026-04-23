@@ -14,208 +14,299 @@
 #include <array>
 
 #define DEBUG_PORT Serial
-#define COMM_PORT Serial1
-#define TMC2209_PORT TMC2209_Serial
+#define COMM_PORT  Serial1
 
-//!#############################*/
-//!######## Pin Defines ########*/
-//!#############################*/
+//!#############################
+//!######## Pin Defines ########
+//!#############################
 
-// EC Sensors
-#define EC1_PIN A5
-#define EC2_PIN A9
-#define EC3_PIN A13
-#define EC4_PIN A1
+#define EC1_PIN  A5
+#define EC2_PIN  A9
+#define EC3_PIN  A13
+#define EC4_PIN  A1
 
-// pH Sensors
-#define pH1_PIN A3
-#define pH2_PIN A15
+#define pH1_PIN  A3
+#define pH2_PIN  A15
 
-// Temp Sensors
-#define TEMP1_PIN A2 
+#define TEMP1_PIN A2
 #define TEMP2_PIN A6
 #define TEMP3_PIN A10
 #define TEMP4_PIN A14
 
-
-// Mixing Motor
 #define MIX_PIN_IN1 37
 #define MIX_PIN_IN2 39
 #define MIX_PIN_ENA 35
 
-// pH Up Bottle Pump
-#define pH_UP_STEP_PIN 50
-#define pH_UP_DIR_PIN 52
-
-// pH Down Bottle Pump
+#define pH_UP_STEP_PIN   50
+#define pH_UP_DIR_PIN    52
 #define pH_DOWN_STEP_PIN 48
-#define pH_DOWN_DIR_PIN 46
+#define pH_DOWN_DIR_PIN  46
+#define GRO_STEP_PIN     36
+#define GRO_DIR_PIN      34
+#define MICRO_STEP_PIN   38
+#define MICRO_DIR_PIN    40
+#define BLOOM_STEP_PIN   42
+#define BLOOM_DIR_PIN    44
 
-// Green Bottle Pump
-#define GRO_STEP_PIN 36
-#define GRO_DIR_PIN 34
-
-// Purple Bottle Pump
-#define MICRO_STEP_PIN 38
-#define MICRO_DIR_PIN 40
-
-// Pink Bottle Pump
-#define BLOOM_STEP_PIN 42
-#define BLOOM_DIR_PIN 44
-
-//!#######################################*/
-//!######## Serial 2 Define ##############*/
-//!#######################################*/
+//!#######################################
+//!######## Serial 2 (TMC2209) ###########
+//!#######################################
 
 Uart TMC2209_Serial(&sercom1, 17, 16, SERCOM_RX_PAD_1, UART_TX_PAD_0);
-
-// Handlers for SERCOM1
 void SERCOM1_0_Handler() { TMC2209_Serial.IrqHandler(); }
 void SERCOM1_1_Handler() { TMC2209_Serial.IrqHandler(); }
 void SERCOM1_2_Handler() { TMC2209_Serial.IrqHandler(); }
 void SERCOM1_3_Handler() { TMC2209_Serial.IrqHandler(); }
-
 #define TMC2209_PORT TMC2209_Serial
 
+//!################################################
+//!######## Sensor & Motor Objects ################
+//!################################################
 
-//!################################################*/
-//!######## Sensor & Motor Object Creation ########*/
-//!################################################*/
-
-// EC Sensors
 ec_sensor ec1(EC1_PIN, 660.37735849f);
 ec_sensor ec2(EC2_PIN, 2456.14035088f);
 ec_sensor ec3(EC3_PIN, 633.4841629f);
 ec_sensor ec4(EC4_PIN, 583.33333333f);
 
-
-// pH Sensors
 ph_sensor ph1(pH1_PIN);
 ph_sensor ph2(pH2_PIN);
 
-
-// Temp Sensors
 temp_sensor temp1(TEMP1_PIN);
 temp_sensor temp2(TEMP2_PIN);
 temp_sensor temp3(TEMP3_PIN);
 temp_sensor temp4(TEMP4_PIN);
 
-
-// Motors with TMC2209 configuration
-Motor ph_up(pH_UP_DIR_PIN, pH_UP_STEP_PIN, TMC2209_PORT);
+Motor ph_up(pH_UP_DIR_PIN,    pH_UP_STEP_PIN,   TMC2209_PORT);
 Motor ph_down(pH_DOWN_DIR_PIN, pH_DOWN_STEP_PIN, TMC2209_PORT);
-Motor gro(GRO_DIR_PIN, GRO_STEP_PIN, TMC2209_PORT); // Green
-Motor micro(MICRO_DIR_PIN, MICRO_STEP_PIN, TMC2209_PORT); // Purple
-Motor bloom(BLOOM_DIR_PIN, BLOOM_STEP_PIN, TMC2209_PORT); // Pink
+Motor gro(GRO_DIR_PIN,         GRO_STEP_PIN,     TMC2209_PORT);
+Motor micro(MICRO_DIR_PIN,     MICRO_STEP_PIN,   TMC2209_PORT);
+Motor bloom(BLOOM_DIR_PIN,     BLOOM_STEP_PIN,   TMC2209_PORT);
 
-
-// Kalman filter objects
 KalmanFilter ec_kalman;
 KalmanFilter pH_kalman;
 KalmanFilter temp_kalman;
 
 TargetPlant plant;
-std::string plant_name = "Arugula";
 
-void setup() {
-  DEBUG_PORT.begin(115200);
-  COMM_PORT.begin(115200); 
-  TMC2209_PORT.begin(115200); 
+//!##################################################
+//!######## Volume / Depletion Config ###############
+//!##################################################
 
-  Wire.begin();
+static const int   NUM_PLANTS                  = 21;
+static const float UPTAKE_ML_PER_PLANT_PER_DAY = 25.0f;
+static const float INTERVALS_PER_DAY           = 96.0f;
+static const float UPTAKE_PER_INTERVAL =
+    (NUM_PLANTS * UPTAKE_ML_PER_PLANT_PER_DAY) / INTERVALS_PER_DAY;
 
-  pinMode(MIX_PIN_IN1, OUTPUT);
-  pinMode(MIX_PIN_IN2, OUTPUT);
-  pinMode(MIX_PIN_ENA, OUTPUT);
+static float reservoir_volume_ml   = 10000.0f;
+static const float RESERVOIR_MIN_ML = 2000.0f;
 
+//!##################################################
+//!######## Latest sensor cache #####################
+//! Populated every loop(), sent on M:1001 requests #
+//!##################################################
 
-  pinPeripheral(16, PIO_SERCOM);
-  pinPeripheral(17, PIO_SERCOM);
+static float latest_ph   = 0.0f;
+static float latest_ec   = 0.0f;
+static float latest_temp = 0.0f;
 
-  // Initialize Motors
-  ph_up.init();
-  ph_down.init();
-  gro.init();
-  micro.init();
-  bloom.init();
+//!##################################################
+//!######## System run state ########################
+//! When false: no sensor reads, no automated dosing.
+//! Serial polling and loading-dose (M:2001) still run.
+//!##################################################
 
-  analogReadResolution(12);
+static bool is_system_running = false;
 
-  // Init filter vals
-  ec_kalman.x = 0.7;
-  ec_kalman.p = 0.3;
-
-  pH_kalman.x = 6.5;
-  pH_kalman.p = 0.1;
-
-  temp_kalman.x = 22.0;
-  temp_kalman.p = 0.4;
-
-  // // plant.name = "Arugula";
-  plant.ec_high = 1.8f;
-  plant.ec_low = 0.8f;
-  plant.ec_avg = (plant.ec_high + plant.ec_low) / 2.0f;
-  plant.ph_high = 6.8f;
-  plant.ph_low = 6.0f;
-  plant.ph_avg = (plant.ph_high + plant.ph_low) / 2.0f;
-
-  plant.gro_amount = 1;
-  plant.bloom_amount = 1;
-  plant.micro_amount = 1;
-  
-}
+//!##################################################
+//!######## Dosing timer ############################
+//!##################################################
 
 static unsigned long lastDoseMillis = 0;
-const unsigned long doseInterval = 15UL * 60UL * 1000UL; // 15 minutes
+static const unsigned long doseInterval = 15UL * 60UL * 1000UL;
+
+static unsigned long lastDebugMillis = 0;
+static const unsigned long debugInterval = 2000UL;
+
+static CommReader commReader;
+
+void handle_comm_message(const char *line) {
+    JsonDocument doc;
+    if (!parse_message(line, doc)) {
+        DEBUG_PORT.print("COMM parse err: ");
+        DEBUG_PORT.println(line);
+        return;
+    }
+
+    uint16_t msgType = doc["M"] | 0;
+
+    switch (msgType) {
+
+        // ESP32 polling for sensor data
+        case MSG_SENSOR_REQUEST:   // 1001
+            send_sensor_data(COMM_PORT, latest_ph, latest_ec, latest_temp);
+            break;
+
+        case MSG_LOAD_DOSE: {      // 2001
+            float g  = doc["gro"]   | 0.0f;
+            float m  = doc["micro"] | 0.0f;
+            float b  = doc["bloom"] | 0.0f;
+            float pu = doc["ph_up"] | 0.0f;
+            float pd = doc["ph_dn"] | 0.0f;
+
+            DEBUG_PORT.println("=== Web loading dose ===");
+            if (g  > 0.0f) gro.dose(g);
+            if (m  > 0.0f) micro.dose(m);
+            if (b  > 0.0f) bloom.dose(b);
+            if (pu > 0.0f) ph_up.dose(pu);
+            if (pd > 0.0f) ph_down.dose(pd);
+
+            if (g > 0.0f || m > 0.0f || b > 0.0f || pu > 0.0f || pd > 0.0f) {
+                mix_resevoir(MIX_PIN_IN1, MIX_PIN_IN2, MIX_PIN_ENA);
+                DEBUG_PORT.println("Web loading dose complete. Mixed.");
+            }
+            break;
+        }
+
+        // Start/stop 
+        case MSG_SYSTEM_STATE: {   // 2002
+            bool run = doc["run"] | false;
+
+            if (run && !is_system_running) {
+                lastDoseMillis = millis();
+            }
+
+            is_system_running = run;
+            DEBUG_PORT.print("System state -> ");
+            DEBUG_PORT.println(run ? "RUNNING" : "STANDBY");
+            break;
+        }
+
+        // Set plant profile
+        case MSG_SET_PROFILE: {    // 2003
+            plant.ec_low  = doc["ec_min"] | plant.ec_low;
+            plant.ec_high = doc["ec_max"] | plant.ec_high;
+            plant.ec_avg  = doc["ec_avg"] | plant.ec_avg;
+            plant.ph_low  = doc["ph_min"] | plant.ph_low;
+            plant.ph_high = doc["ph_max"] | plant.ph_high;
+            plant.ph_avg  = doc["ph_avg"] | plant.ph_avg;
+
+            DEBUG_PORT.print("Profile updated -> EC [");
+            DEBUG_PORT.print(plant.ec_low, 2);  DEBUG_PORT.print(", ");
+            DEBUG_PORT.print(plant.ec_high, 2); DEBUG_PORT.print("] avg ");
+            DEBUG_PORT.print(plant.ec_avg, 2);  DEBUG_PORT.print(" mS/cm | pH [");
+            DEBUG_PORT.print(plant.ph_low, 2);  DEBUG_PORT.print(", ");
+            DEBUG_PORT.print(plant.ph_high, 2); DEBUG_PORT.print("] avg ");
+            DEBUG_PORT.println(plant.ph_avg, 2);
+            break;
+        }
+
+        default:
+            DEBUG_PORT.print("Unknown M: ");
+            DEBUG_PORT.println(msgType);
+            break;
+    }
+}
+
+
+void setup() {
+    DEBUG_PORT.begin(115200);
+    COMM_PORT.begin(115200);
+    TMC2209_PORT.begin(115200);
+
+    Wire.begin();
+
+    pinMode(MIX_PIN_IN1, OUTPUT);
+    pinMode(MIX_PIN_IN2, OUTPUT);
+    pinMode(MIX_PIN_ENA, OUTPUT);
+
+    pinPeripheral(16, PIO_SERCOM);
+    pinPeripheral(17, PIO_SERCOM);
+
+    ph_up.init(); ph_down.init();
+    gro.init();   micro.init();  bloom.init();
+
+    analogReadResolution(12);
+
+    ec_kalman.x = 0.7f;    ec_kalman.p = 0.3f;
+    pH_kalman.x = 6.5f;    pH_kalman.p = 0.1f;
+    temp_kalman.x = 22.0f; temp_kalman.p = 0.4f;
+
+    plant.ec_high = 1.8f; plant.ec_low = 0.8f;
+    plant.ec_avg  = (plant.ec_high + plant.ec_low) / 2.0f;
+    plant.ph_high = 6.8f; plant.ph_low = 6.0f;
+    plant.ph_avg  = (plant.ph_high + plant.ph_low) / 2.0f;
+    plant.gro_amount = 1; plant.bloom_amount = 1; plant.micro_amount = 1;
+
+    is_system_running = false;
+    lastDoseMillis    = millis();
+
+    DEBUG_PORT.println("Setup complete. System STANDBY — waiting for start command.");
+}
+
 
 void loop() {
 
-  unsigned long now = millis();
+    unsigned long now = millis();
 
-  float volume = 10.0;
+    if (commReader.poll(COMM_PORT)) {
+        handle_comm_message(commReader.buf);
+    }
 
-  // Read temp and filter before passing to ph sensor read()
-  std::array<float, 4> temp_raw = {temp1.read_val(), temp2.read_val(), temp3.read_val(), temp4.read_val()};
-  float temp_val = temp_filter(temp_raw, temp_kalman, 0.1);
+    if (!is_system_running) {
+        return;
+    }
 
-  std::array<float, 4> ec_raw = {ec1.read_val(), ec2.read_val(), ec3.read_val(), ec4.read_val()};
-  std::array<float, 2> ph_raw = {ph1.read_val(temp_val), ph2.read_val(temp_val)};
+    // Read sensors
+    std::array<float, 4> temp_raw = {
+        temp1.read_val(), temp2.read_val(), temp3.read_val(), temp4.read_val()
+    };
+    latest_temp = temp_filter(temp_raw, temp_kalman, 0.1f);
 
-  // Filter sensor data
-  float ec_val = ec_filter(ec_raw, ec_kalman, 0.1);
-  float ph_val = ph_filter(ph_raw, pH_kalman, 0.1);
+    std::array<float, 4> ec_raw = {
+        ec1.read_val(latest_temp), ec2.read_val(latest_temp), ec3.read_val(latest_temp), ec4.read_val(latest_temp)
+    };
+    std::array<float, 2> ph_raw = {
+        ph1.read_val(latest_temp), ph2.read_val(latest_temp)
+    };
 
-  ph_val = 6.5;
+    latest_ec = ec_filter(ec_raw, ec_kalman, 0.1f);
+    latest_ph = ph_filter(ph_raw, pH_kalman, 0.1f);
 
-  // Calc nutrient and ph dosing amount
-  float nutrient_dose = nutrient_calc(plant.ec_avg, plant.ec_low, plant.ec_high, volume, ec_val);
-  float ph_up_dose = ph_up_calc(plant.ph_avg, plant.ph_low, plant.ph_high, volume, ph_val);
-  float ph_down_dose = ph_down_calc(plant.ph_avg, plant.ph_low, plant.ph_high, volume, ph_val);
+    // Check every 15 mins
+    if (now - lastDoseMillis >= doseInterval) {
 
-  // Split nutrients proportionally for the 3 nutrients
-  std::array<float, 3> dose = proportion_nutrient(nutrient_dose, plant.gro_amount, plant.micro_amount, plant.bloom_amount);
+        reservoir_volume_ml -= UPTAKE_PER_INTERVAL;
+        if (reservoir_volume_ml < 0.0f) reservoir_volume_ml = 0.0f;
 
-  // Dose 
-  static bool nut_dosed_check = false;
-  static bool ph_dosed_check = false;
+        if (reservoir_volume_ml < RESERVOIR_MIN_ML)
+            DEBUG_PORT.println("WARNING: Reservoir low!");
 
+        float vol_L = reservoir_volume_ml / 1000.0f;
 
-  if (now - lastDoseMillis >= doseInterval) {
-        // perform dosing
-        nut_dosed_check = dose_nutrients(gro, dose[0], bloom, dose[1], micro, dose[2]);
-        ph_dosed_check = dose_ph(ph_up, ph_up_dose, ph_down, ph_down_dose);
+        float nutrient_dose = nutrient_calc(plant.ec_avg, plant.ec_low, plant.ec_high, vol_L, latest_ec);
+        float ph_up_dose    = ph_up_calc(plant.ph_avg, plant.ph_low, plant.ph_high, vol_L, latest_ph);
+        float ph_down_dose  = ph_down_calc(plant.ph_avg, plant.ph_low, plant.ph_high, vol_L, latest_ph);
 
-        if (nut_dosed_check || ph_dosed_check) {
+        std::array<float, 3> dose = proportion_nutrient(
+            nutrient_dose, plant.gro_amount, plant.micro_amount, plant.bloom_amount);
+
+        bool nut_dosed = dose_nutrients(gro, dose[0], bloom, dose[1], micro, dose[2]);
+        bool ph_dosed  = dose_ph(ph_up, ph_up_dose, ph_down, ph_down_dose);
+
+        if (nut_dosed || ph_dosed) {
             mix_resevoir(MIX_PIN_IN1, MIX_PIN_IN2, MIX_PIN_ENA);
-            DEBUG_PORT.println("Dosed. Starting mixing");
+            DEBUG_PORT.println("Dosed and mixed.");
         } else {
-            DEBUG_PORT.println("Nothing dosed. Skipping mixing");
+            DEBUG_PORT.println("In range - nothing dosed.");
         }
 
         lastDoseMillis = now;
     }
 
-  send_data(DEBUG_PORT, ph_val, ec_val, temp_val); // Display the data in monitor
-  send_data(COMM_PORT, ph_val, ec_val, temp_val); // Send data to ESP32
-
+    // Send data over usb
+    if (now - lastDebugMillis >= debugInterval) {
+        send_data(DEBUG_PORT, latest_ph, latest_ec, latest_temp);
+        lastDebugMillis = now;
+    }
 }

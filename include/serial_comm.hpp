@@ -5,40 +5,54 @@
 #include <array>
 #include <ArduinoJson.h>
 
+static constexpr uint16_t MSG_SENSOR_REQUEST  = 1001; // ESP32 → MCU: Request sensor data
+static constexpr uint16_t MSG_SENSOR_RESPONSE = 1002; // MCU → ESP32: sensor data response
+static constexpr uint16_t MSG_LOAD_DOSE       = 2001; // ESP32 → MCU: loading dose command
+static constexpr uint16_t MSG_SYSTEM_STATE    = 2002; // ESP32 → MCU: start/stop system
+static constexpr uint16_t MSG_SET_PROFILE     = 2003; // ESP32 → MCU: plant profile 
 
-void send_data(Stream &comm_port, const float &ph_val, const float &ec_val, const float &temp_val) {
+// Send data
+void send_sensor_data(Stream &port, float ph, float ec, float temp) {
     JsonDocument msg;
-    msg["pH"] = ph_val;
-    msg["ec"] = ec_val;
-    msg["temp"] = temp_val;
-
-    serializeJson(msg, comm_port);
-    comm_port.print('\n');
+    msg["M"]    = MSG_SENSOR_RESPONSE;
+    msg["pH"]   = ph;
+    msg["ec"]   = ec;
+    msg["temp"] = temp;
+    serializeJson(msg, port);
+    port.print('\n');
 }
 
-std::array<float, 3> read_data(Stream &comm_port, Stream &logger_port) {
-    static constexpr uint8_t size = 255;
-    char buffer[size];
+void send_data(Stream &port, const float &ph, const float &ec, const float &temp) {
+    send_sensor_data(port, ph, ec, temp);
+}
 
-    size_t bytesRead = comm_port.readBytesUntil('\n', buffer, size - 1);
-    buffer[bytesRead] = '\0';
+static constexpr uint8_t COMM_BUF_SIZE = 255;
 
-    if (bytesRead < 10) {
-        return {0.0f, 0.0f, 0.0f}; 
+struct CommReader {
+    char    buf[COMM_BUF_SIZE];
+    uint8_t idx = 0;
+
+    // Returns true when a full line has arrived
+    bool poll(Stream &port) {
+        while (port.available() > 0) {
+            char c = static_cast<char>(port.read());
+            if (c == '\n') {
+                buf[idx] = '\0';
+                idx = 0;
+                return true; // caller can now parse buf
+            }
+            if (idx < COMM_BUF_SIZE - 1) {
+                buf[idx++] = c;
+            }
+            // overflow
+            else { idx = 0; }
+        }
+        return false;
     }
-    
-    JsonDocument msg;
-    DeserializationError error = deserializeJson(msg, buffer);
+};
 
-    if (error) {
-        logger_port.print("JSON error: ");
-        logger_port.println(error.c_str());
-        return {0.0f, 0.0f, 0.0f}; 
-    }
 
-    float ph = msg["pH"];
-    float ec = msg["ec"];
-    float temp = msg["temp"];
-
-    return {ph, ec, temp};
+bool parse_message(const char *line, JsonDocument &doc) {
+    DeserializationError err = deserializeJson(doc, line);
+    return !err;
 }
