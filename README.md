@@ -10,5 +10,4 @@ This a framework for an autonomous hydroponic management system.
 - Simple controller to maintain pH and EC within range
 - Front-end web interface for live monitoring and control as well as choice of plant profiles
 
-
-![image](full-frame.pdf)
+![image](./full-frame.jpg)
