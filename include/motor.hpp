@@ -41,8 +41,8 @@ void Motor::init() {
     driver.I_scale_analog(false);
     driver.en_spreadCycle(false);
 
-    stepper.setMaxSpeed(6000);
-    stepper.setAcceleration(500);
+    stepper.setMaxSpeed(8000);
+    stepper.setAcceleration(2000);
     stepper.setSpeed(4000);
 
 }
